@@ -1,15 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { Link } from 'expo-router';
 
-export default function HomeScreen() {
+
+import { StyleSheet } from 'react-native';
+import "../firebaseConfig";
+import TabNavigation from './(tabs)/_layout';
+
+export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Welcome! Start working on your app!</Text>
+    <>
       <StatusBar style="auto" />
-      <Link href="contact-management/addcontact" style={{ color: 'blue' }}>Go to Contact ADD</Link>
-      <Link href="contact-management/Updatecontact" style={{ color: 'blue' }}>Go to Update page</Link>
-    </View>
+      <TabNavigation />
+    </>
+
   );
 }
 
@@ -20,4 +22,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+
 });
+
