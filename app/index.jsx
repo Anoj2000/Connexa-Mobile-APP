@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import "../firebaseConfig";
 
 export default function Index() {
   return (

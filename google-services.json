@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "89292012467",
+    "firebase_url": "https://connex-app-f768f-default-rtdb.firebaseio.com",
+    "project_id": "connex-app-f768f",
+    "storage_bucket": "connex-app-f768f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89292012467:android:cedd54acbfba62ba10a9c6",
+        "android_client_info": {
+          "package_name": "com.mycompany.connexaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDViGt6nqAuR2AELt8uyqGMnqoZYMYSVks"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
