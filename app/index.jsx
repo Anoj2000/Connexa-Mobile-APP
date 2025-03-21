@@ -1,7 +1,10 @@
-import { Text, View } from "react-native";
+import { Text, View, Button } from "react-native";
+import { useRouter } from "expo-router";
 import "../firebaseConfig";
 
 export default function Index() {
+  const router = useRouter(); // Navigation hook
+
   return (
     <View
       style={{
@@ -11,6 +14,8 @@ export default function Index() {
       }}
     >
       <Text>Welcome</Text>
+      <Button title="Groups" onPress={() => router.push("/Sharing&Collaboration/groups")} />
     </View>
   );
 }
+
