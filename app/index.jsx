@@ -15,6 +15,7 @@ export default function App() {
       {/* <NotificationLogScreen/> */}
       <NotificationDeleteScreen />
     </>
+
   );
 }
 
@@ -25,4 +26,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+
 });
+
