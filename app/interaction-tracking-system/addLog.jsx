@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     backgroundColor: 'white',
-    paddingTop: Platform.OS === 'ios' ? 16 : 56,
+    paddingTop: Platform.OS === 'ios' ? 16 : 30,
   },
   backButton: {
     width: 60,

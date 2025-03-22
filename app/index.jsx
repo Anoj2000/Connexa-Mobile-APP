@@ -3,14 +3,14 @@ import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
 import NewLogScreen from '../app/interaction-tracking-system/addLog.jsx';
 // import DashboardLogScreen from '../app/interaction-tracking-system/readLog.jsx';
-//import TabNavigation from './(tabs)/_layout';
+import TabNavigation from './(tabs)/_layout';
 
 export default function App() {
   return (
     <>
       <StatusBar style="auto" />
-      {/* <TabNavigation /> */}
-      <NewLogScreen/>
+      <TabNavigation />
+      {/* <NewLogScreen/> */}
       {/* <DashboardLogScreen/> */}
       {/* <NotificationDeleteScreen /> */}
     </>

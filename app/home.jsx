@@ -158,7 +158,7 @@ const ContactsScreen = ({ contacts = [] }) => {
                 onPress={() => {
                   setModalVisible(false);
                   // Navigate to add interaction screen
-                  // router.push('/contact-management/addinteraction');
+                  router.push('/interaction-tracking-system/addLog');
                 }}
               >
                 <View style={styles.optionIconContainer}>
@@ -242,6 +242,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginRight: 10,
+    marginTop:44
   },
   headerTitle: {
     color: 'white',
