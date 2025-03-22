@@ -1,6 +1,4 @@
 import { StatusBar } from 'expo-status-bar';
-
-
 import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
 import TabNavigation from './(tabs)/_layout';
