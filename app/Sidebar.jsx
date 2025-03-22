@@ -8,7 +8,7 @@ export default function Sidebar() {
     { icon: '☎️', title: 'All Contacts', screen: 'Contacts' },
     { icon: '⭐', title: 'Favorites', screen: 'Favorites' },
     { icon: '🕒', title: 'Recent', screen: 'Recent' },
-    { icon: '📷', title: 'Shared Photos', screen: 'SharedPhotos' },
+    // { icon: '📷', title: 'Shared Photos', screen: 'SharedPhotos' },
     { icon: '⚙️', title: 'Settings', screen: 'Settings' },
     { icon: '❓', title: 'Help & Feedback', screen: 'Help' },
   ];
