@@ -1,9 +1,15 @@
-import { Text, View } from "react-native";
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
+
 import { Link } from 'expo-router';
 
-export default function Index() {
+import TabNavigation from './(tabs)/_layout';
+
+
+export default function App() {
   return (
+
     <View
       style={{
         flex: 1,
@@ -17,5 +23,23 @@ export default function Index() {
       <Link href="/FollowUp_Reminder/Delete_FollowUp" style={{ color: 'blue'}}>Delete the follow up</Link>
       <Link href="/FollowUp_Reminder/FollowUp_Dashboard" style={{ color: 'blue'}}>Follow Up Dashboard</Link>
     </View>
+
+    <>
+      <StatusBar style="auto" />
+      <TabNavigation />
+    </>
+
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+
+});
+
