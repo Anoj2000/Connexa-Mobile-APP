@@ -11,6 +11,9 @@ import {
   Modal,
   ScrollView
 } from 'react-native';
+import { useRouter } from "expo-router";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { FIREBASE_DB } from "../../firebaseConfig";
 
 const NewLogScreen = () => {
   const [contactName, setContactName] = useState('');
@@ -18,6 +21,18 @@ const NewLogScreen = () => {
   const [noteText, setNoteText] = useState('');
   const [showInteractionOptions, setShowInteractionOptions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  //contacts names
+  const contacts = [
+    { id: "1", name: "John Smith" },
+    { id: "2", name: "Sarah Shine" },
+    { id: "3", name: "James Sony" },
+    { id: "4", name: "Anna Doe" },
+    { id: "5", name: "Mike Brown" },
+    { id: "6", name: "Emma Wilson" },
+    { id: "7", name: "David Johnson" },
+    { id: "8", name: "Sophia Miller" },
+  ];
   
   // Interaction types
   const interactionTypes = ['Message', 'Emails', 'Meetings'];
