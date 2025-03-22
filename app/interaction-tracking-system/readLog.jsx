@@ -1,49 +1,110 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  SafeAreaView, 
-  StatusBar, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
   TextInput,
-  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const NotificationLogScreen = ({ navigation, notifications = [] }) => {
+// Sample data to use when no logs are provided through navigation
+const SAMPLE_LOGS = [
+  {
+    id: '1',
+    contactName: 'John Doe',
+    date: '2025-03-20',
+    note: 'Discussed project timeline and deliverables',
+    interactionType: 'Meeting'
+  },
+  {
+    id: '2',
+    contactName: 'Jane Smith',
+    date: '2025-03-21',
+    note: 'Follow-up call about requirements',
+    interactionType: 'Call'
+  }
+];
+
+const DashboardLogScreen = ({ navigation, route = {} }) => {
   const [activeTab, setActiveTab] = useState('Today');
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [logs, setLogs] = useState(SAMPLE_LOGS);
+
+  // Safely access route.params and set logs if available
+  useEffect(() => {
+    if (route && route.params && route.params.logs) {
+      setLogs(route.params.logs);
+    }
+  }, [route]);
+
+  // Filter logs based on activeTab and searchQuery
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = searchQuery === '' || 
+      log.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (log.note && log.note.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (!matchesSearch) return false;
+    
+    // Apply tab filters
+    if (activeTab === 'All') return true;
+    
+    // Safely parse date
+    let logDate;
+    try {
+      logDate = new Date(log.date);
+      if (isNaN(logDate.getTime())) {
+        // If date is invalid, fallback to current date
+        logDate = new Date();
+      }
+    } catch (e) {
+      logDate = new Date();
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (activeTab === 'Today') {
+      const logDay = new Date(logDate);
+      logDay.setHours(0, 0, 0, 0);
+      return logDay.getTime() === today.getTime();
+    }
+    
+    if (activeTab === 'This week') {
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      return logDate >= weekStart;
+    }
+    
+    return true;
+  });
+
   // Filter options
   const filterOptions = ['All', 'Today', 'This week'];
 
-  const renderNotificationItem = ({ item }) => (
+  const renderLogItem = ({ item }) => (
     <View style={styles.notificationItem}>
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.avatarUri }} style={styles.avatar} />
-        <View style={[styles.statusIndicator, { backgroundColor: item.statusColor }]} />
-      </View>
-      
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
-          <Text style={styles.nameText}>{item.name}</Text>
-          <Text style={styles.timeText}>{item.time}</Text>
+          <Text style={styles.nameText}>{item.contactName || 'Unknown Contact'}</Text>
+          <Text style={styles.timeText}>{item.date || 'No date'}</Text>
         </View>
-        
-        <Text style={styles.messageText} numberOfLines={1}>
-          {item.message}
+
+        <Text style={styles.messageText} numberOfLines={2}>
+          {item.note || 'No notes'}
         </Text>
-        
+
         <View style={styles.footerRow}>
-          <Text style={styles.typeText}>{item.type}-{item.timestamp}</Text>
-          
+          <Text style={styles.typeText}>{item.interactionType || 'Other'}</Text>
+
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => console.log('Edit log', item.id)}>
               <Ionicons name="create-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => console.log('Delete log', item.id)}>
               <Ionicons name="trash-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
           </View>
@@ -52,16 +113,27 @@ const NotificationLogScreen = ({ navigation, notifications = [] }) => {
     </View>
   );
 
+  const handleCancelSearch = () => {
+    setSearchQuery('');
+  };
+
+  // Handle back navigation safely
+  const handleBack = () => {
+    if (navigation) {
+      navigation.goBack();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        
+
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={18} color="#8e8e93" style={styles.searchIcon} />
           <TextInput
@@ -71,14 +143,19 @@ const NotificationLogScreen = ({ navigation, notifications = [] }) => {
             onChangeText={setSearchQuery}
             placeholderTextColor="#8e8e93"
           />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={handleCancelSearch}>
+              <Ionicons name="close-circle" size={18} color="#8e8e93" style={styles.clearIcon} />
+            </TouchableOpacity>
+          )}
           <Ionicons name="mic" size={18} color="#8e8e93" style={styles.micIcon} />
         </View>
-        
-        <TouchableOpacity style={styles.cancelButton}>
+
+        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSearch}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Filter Tabs */}
       <View style={styles.tabContainer}>
         {filterOptions.map((option) => (
@@ -86,7 +163,7 @@ const NotificationLogScreen = ({ navigation, notifications = [] }) => {
             key={option}
             style={[
               styles.tabButton,
-              activeTab === option && styles.activeTabButton
+              activeTab === option && styles.activeTabButton,
             ]}
             onPress={() => setActiveTab(option)}
           >
@@ -94,7 +171,6 @@ const NotificationLogScreen = ({ navigation, notifications = [] }) => {
               style={[
                 styles.tabText,
                 activeTab === option && styles.activeTabText,
-                option === 'This week' && styles.thisWeekTab
               ]}
             >
               {option}
@@ -102,15 +178,20 @@ const NotificationLogScreen = ({ navigation, notifications = [] }) => {
           </TouchableOpacity>
         ))}
       </View>
-      
-      {/* Notifications List */}
+
+      {/* Logs List */}
       <FlatList
-        data={notifications}
-        renderItem={renderNotificationItem}
-        keyExtractor={(item) => item.id}
+        data={filteredLogs}
+        renderItem={renderLogItem}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No logs found</Text>
+          </View>
+        }
       />
-      
+
       {/* Bottom Indicator */}
       <View style={styles.bottomIndicator} />
     </SafeAreaView>
@@ -151,6 +232,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
+  clearIcon: {
+    marginLeft: 6,
+  },
   micIcon: {
     marginLeft: 6,
   },
@@ -184,11 +268,10 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
-  thisWeekTab: {
-    color: '#007AFF',
-  },
   listContainer: {
     paddingTop: 8,
+    paddingBottom: 16,
+    flexGrow: 1,
   },
   notificationItem: {
     flexDirection: 'row',
@@ -197,25 +280,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginHorizontal: 16,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  statusIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   contentContainer: {
     flex: 1,
@@ -264,6 +328,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     opacity: 0.2,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#8e8e93',
+  },
 });
 
-export default NotificationLogScreen;
+export default DashboardLogScreen;
