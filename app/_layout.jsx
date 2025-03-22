@@ -1,4 +1,7 @@
-import { Stack } from "expo-router";
+import { StyleSheet, Text, View } from 'react-native'
+import React from 'react'
+import { Slot, Stack} from 'expo-router';
+
 
 export default function RootLayout() {
   return (
@@ -9,6 +12,10 @@ export default function RootLayout() {
         headerShown: false,
       }}
     />
+
     </Stack>
   )
 }
+
+
+

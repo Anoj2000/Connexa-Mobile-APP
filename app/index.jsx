@@ -1,4 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
+
+
 import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
 import TabNavigation from './(tabs)/_layout';
@@ -9,6 +11,7 @@ export default function App() {
       <StatusBar style="auto" />
       <TabNavigation />
     </>
+
   );
 }
 
@@ -19,4 +22,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+
 });
+
