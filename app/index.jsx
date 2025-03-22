@@ -9,6 +9,7 @@ import TabNavigation from './(tabs)/_layout';
 
 export default function App() {
   return (
+    <>
 
     <View
       style={{
@@ -24,7 +25,7 @@ export default function App() {
       <Link href="/FollowUp_Reminder/FollowUp_Dashboard" style={{ color: 'blue'}}>Follow Up Dashboard</Link>
     </View>
 
-    <>
+    
       <StatusBar style="auto" />
       <TabNavigation />
     </>
