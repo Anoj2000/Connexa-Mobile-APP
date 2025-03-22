@@ -1,15 +1,12 @@
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackground } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons'; // Make sure to install this package
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 const AddContact = () => {
   const navigation = useNavigation();
   const [profileImage, setProfileImage] = useState(null);
-
-  useEffect(() => {
-    navigation.setOptions({ headerShown: false }); // Hide header
-  }, [navigation]);
 
   const handleImagePick = () => {
     // This is where you'd implement image picker functionality
@@ -21,12 +18,31 @@ const AddContact = () => {
     // setProfileImage(require('../../assets/images/addcontactback.webp'));
   };
 
+  const handleAddContact = () => {
+    // Handle saving contact logic here
+    console.log('Contact would be saved here');
+    
+    // Navigate back to the contacts screen
+    router.back();
+  };
+
   return (
     <ImageBackground 
       source={require('../../assets/images/addcontactback.webp')} 
       style={styles.backgroundImage}
     >
       <View style={styles.container}>
+        {/* Back button */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        </TouchableOpacity>
+        
+        {/* Title */}
+        <Text style={styles.title}>Add New Contact</Text>
+        
         {/* Profile Image Section */}
         <View style={styles.imageContainer}>
           <TouchableOpacity onPress={handleImagePick} style={styles.profileImageContainer}>
@@ -60,7 +76,7 @@ const AddContact = () => {
           <Text style={styles.dropdownText}>Select contact type</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddContact}>
           <Text style={styles.addButtonText}>Add Contact</Text>
         </TouchableOpacity>
       </View>
@@ -70,7 +86,7 @@ const AddContact = () => {
 
 const styles = StyleSheet.create({
   backgroundImage: {
-    flex: 2,
+    flex: 1,
     width: '100%',
     height: '100%',
   },
@@ -78,6 +94,17 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.60)', // Semi-transparent white background
+    paddingTop: 50,
+  },
+  backButton: {
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
   },
   imageContainer: {
     alignItems: 'center',
