@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image } from 'react-native';
 
@@ -6,12 +7,16 @@ export default function Sidebar() {
   const menuItems = [
     // { icon: '👤', title: 'Profile', screen: 'Profile' },
     { icon: '☎️', title: 'All Contacts', screen: 'Contacts' },
-    { icon: '⭐', title: 'Favorites', screen: 'Favorites' },
+    { icon: '⭐', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
     { icon: '🕒', title: 'Recent', screen: 'Recent' },
     // { icon: '📷', title: 'Shared Photos', screen: 'SharedPhotos' },
     { icon: '⚙️', title: 'Settings', screen: 'Settings' },
     { icon: '❓', title: 'Help & Feedback', screen: 'Help' },
   ];
+
+  const handleNavigation = (screen) => {
+    router.push(`/${screen}`);
+  }
 
   return (
     <View style={styles.container}>
@@ -54,7 +59,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2979FF',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60, // Extra padding for status bar
+    paddingTop: 60, 
     paddingBottom: 30,
   },
   userAvatar: {
