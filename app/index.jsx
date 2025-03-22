@@ -1,6 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
+import NewLogScreen from '../app/interaction-tracking-system/addLog.jsx';
+// import DashboardLogScreen from '../app/interaction-tracking-system/readLog.jsx';
 import TabNavigation from './(tabs)/_layout';
 
 export default function App() {
@@ -8,6 +10,9 @@ export default function App() {
     <>
       <StatusBar style="auto" />
       <TabNavigation />
+      {/* <NewLogScreen/> */}
+      {/* <DashboardLogScreen/> */}
+      {/* <NotificationDeleteScreen /> */}
     </>
 
   );
