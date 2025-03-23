@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,89 +8,238 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { collection, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { FIREBASE_DB } from '../../firebaseConfig';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
-// Sample data to use when no logs are provided through navigation
-const SAMPLE_LOGS = [
-  {
-    id: '1',
-    contactName: 'John Doe',
-    date: '2025-03-20',
-    note: 'Discussed project timeline and deliverables',
-    interactionType: 'Meeting'
-  },
-  {
-    id: '2',
-    contactName: 'Jane Smith',
-    date: '2025-03-21',
-    note: 'Follow-up call about requirements',
-    interactionType: 'Call'
-  }
-];
-
-const DashboardLogScreen = ({ navigation, route = {} }) => {
-  const [activeTab, setActiveTab] = useState('Today');
+const DashboardLogScreen = () => {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [logs, setLogs] = useState(SAMPLE_LOGS);
-
-  // Safely access route.params and set logs if available
-  useEffect(() => {
-    if (route && route.params && route.params.logs) {
-      setLogs(route.params.logs);
-    }
-  }, [route]);
-
-  // Filter logs based on activeTab and searchQuery
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = searchQuery === '' || 
-      log.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.note && log.note.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    if (!matchesSearch) return false;
-    
-    // Apply tab filters
-    if (activeTab === 'All') return true;
-    
-    // Safely parse date
-    let logDate;
-    try {
-      logDate = new Date(log.date);
-      if (isNaN(logDate.getTime())) {
-        // If date is invalid, fallback to current date
-        logDate = new Date();
-      }
-    } catch (e) {
-      logDate = new Date();
-    }
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (activeTab === 'Today') {
-      const logDay = new Date(logDate);
-      logDay.setHours(0, 0, 0, 0);
-      return logDay.getTime() === today.getTime();
-    }
-    
-    if (activeTab === 'This week') {
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay());
-      return logDate >= weekStart;
-    }
-    
-    return true;
-  });
+  const [logs, setLogs] = useState([]);
+  const [contacts, setContacts] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Filter options
-  const filterOptions = ['All', 'Today', 'This week'];
+  const filterOptions = ['All', 'Today', 'This week', 'This month'];
+
+  // Fetch data from Firestore
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch contacts
+      const contactsSnapshot = await getDocs(collection(FIREBASE_DB, 'contacts'));
+      const contactsData = {};
+      contactsSnapshot.forEach((doc) => {
+        const contact = doc.data();
+        contactsData[doc.id] = contact;
+      });
+      setContacts(contactsData);
+      
+      // Fetch logs
+      const logsQuery = query(collection(FIREBASE_DB, 'logs'), orderBy('createdAt', 'desc'));
+      const logsSnapshot = await getDocs(logsQuery);
+      
+      const logsData = logsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        // Convert Firestore timestamp to JS Date if it exists
+        createdAt: doc.data().createdAt ? doc.data().createdAt.toDate() : new Date(),
+      }));
+      
+      setLogs(logsData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      Alert.alert('Error', 'Failed to load logs. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Check for new log from params and refresh
+  useEffect(() => {
+    if (params.newLog) {
+      fetchData();
+    }
+  }, [params.newLog]);
+
+  // Handle refresh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No date';
+    
+    // If it's already a formatted date string like "March 20, 2025"
+    if (typeof dateString === 'string' && dateString.includes(',')) {
+      return dateString;
+    }
+    
+    // Try to parse the date
+    let date;
+    try {
+      date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return as is if parsing fails
+      }
+    } catch (e) {
+      return dateString;
+    }
+    
+    // Format as "Month Day, Year"
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  };
+
+  // Get the current date at midnight for comparison
+  const getTodayStart = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  };
+
+  // Get the start of the current week (Sunday)
+  const getWeekStart = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 is Sunday
+    const diff = today.getDate() - dayOfWeek;
+    const weekStart = new Date(today);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  };
+
+  // Get the start of the current month
+  const getMonthStart = () => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    monthStart.setHours(0, 0, 0, 0);
+    return monthStart;
+  };
+
+  // Filter logs based on activeTab and searchQuery
+  const getFilteredLogs = () => {
+    return logs.filter(log => {
+      const contactName = log.contactName || '';
+      const note = log.note || '';
+      
+      // Apply search filter
+      const matchesSearch = searchQuery === '' || 
+        contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesSearch) return false;
+      
+      // Apply tab filters
+      if (activeTab === 'All') return true;
+      
+      // Parse log date
+      let logDate;
+      
+      if (log.date) {
+        if (typeof log.date === 'string') {
+          try {
+            // Try to parse the date string
+            logDate = new Date(log.date);
+            if (isNaN(logDate.getTime())) {
+              // If string parsing fails, fall back to createdAt
+              logDate = log.createdAt || new Date();
+            }
+          } catch (e) {
+            logDate = log.createdAt || new Date();
+          }
+        } else {
+          // If it's already a Date object
+          logDate = log.date;
+        }
+      } else {
+        // Fallback to createdAt if date is not available
+        logDate = log.createdAt || new Date();
+      }
+      
+      // Set time to midnight for comparison
+      const logDay = new Date(logDate);
+      logDay.setHours(0, 0, 0, 0);
+      
+      // Apply tab filters
+      if (activeTab === 'Today') {
+        return logDay.getTime() === getTodayStart().getTime();
+      } else if (activeTab === 'This week') {
+        return logDay >= getWeekStart();
+      } else if (activeTab === 'This month') {
+        return logDay >= getMonthStart();
+      }
+      
+      return true;
+    });
+  };
+
+  const filteredLogs = getFilteredLogs();
+
+  // Handle log deletion
+  const handleDeleteLog = (logId) => {
+    Alert.alert(
+      "Delete Log",
+      "Are you sure you want to delete this log?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(FIREBASE_DB, 'logs', logId));
+              // Update state to remove the deleted log
+              setLogs(logs.filter(log => log.id !== logId));
+              Alert.alert("Success", "Log deleted successfully");
+            } catch (error) {
+              console.error("Error deleting log:", error);
+              Alert.alert("Error", "Failed to delete log. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Navigate to edit log screen
+  const handleEditLog = (log) => {
+    router.push({
+      pathname: '/EditLogScreen',
+      params: { logId: log.id }
+    });
+  };
+
+  // Navigate to add new log screen
+  const handleAddNewLog = () => {
+    router.push('/NewLogScreen');
+  };
 
   const renderLogItem = ({ item }) => (
     <View style={styles.notificationItem}>
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
           <Text style={styles.nameText}>{item.contactName || 'Unknown Contact'}</Text>
-          <Text style={styles.timeText}>{item.date || 'No date'}</Text>
+          <Text style={styles.timeText}>{formatDate(item.date)}</Text>
         </View>
 
         <Text style={styles.messageText} numberOfLines={2}>
@@ -98,14 +247,22 @@ const DashboardLogScreen = ({ navigation, route = {} }) => {
         </Text>
 
         <View style={styles.footerRow}>
-          <Text style={styles.typeText}>{item.interactionType || 'Other'}</Text>
+          <View style={styles.typeContainer}>
+            <Text style={styles.typeText}>{item.interactionType || 'Other'}</Text>
+          </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => console.log('Edit log', item.id)}>
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={() => handleEditLog(item)}
+            >
               <Ionicons name="create-outline" size={20} color="#007AFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => console.log('Delete log', item.id)}>
-              <Ionicons name="trash-outline" size={20} color="#007AFF" />
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={() => handleDeleteLog(item.id)}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
         </View>
@@ -117,11 +274,24 @@ const DashboardLogScreen = ({ navigation, route = {} }) => {
     setSearchQuery('');
   };
 
-  // Handle back navigation safely
-  const handleBack = () => {
-    if (navigation) {
-      navigation.goBack();
-    }
+  // Render empty state
+  const renderEmptyComponent = () => {
+    if (loading) return null;
+    
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="document-text-outline" size={60} color="#CCCCCC" />
+        <Text style={styles.emptyTitle}>No logs found</Text>
+        <Text style={styles.emptyText}>
+          {searchQuery ? 'Try a different search term' : 'Add your first interaction log'}
+        </Text>
+        {!searchQuery && (
+          <TouchableOpacity style={styles.addLogButton} onPress={handleAddNewLog}>
+            <Text style={styles.addLogButtonText}>Add New Log</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -130,70 +300,86 @@ const DashboardLogScreen = ({ navigation, route = {} }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" />
         </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Interaction Logs</Text>
+        
+        <TouchableOpacity style={styles.addButton} onPress={handleAddNewLog}>
+          <Ionicons name="add-circle-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
 
+      {/* Search bar */}
+      <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={18} color="#8e8e93" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search by name or note"
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#8e8e93"
+            clearButtonMode="while-editing"
           />
           {searchQuery !== '' && (
             <TouchableOpacity onPress={handleCancelSearch}>
               <Ionicons name="close-circle" size={18} color="#8e8e93" style={styles.clearIcon} />
             </TouchableOpacity>
           )}
-          <Ionicons name="mic" size={18} color="#8e8e93" style={styles.micIcon} />
         </View>
-
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSearch}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Filter Tabs */}
       <View style={styles.tabContainer}>
-        {filterOptions.map((option) => (
-          <TouchableOpacity
-            key={option}
-            style={[
-              styles.tabButton,
-              activeTab === option && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab(option)}
-          >
-            <Text
+        <ScrollView 
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContainer}
+        >
+          {filterOptions.map((option) => (
+            <TouchableOpacity
+              key={option}
               style={[
-                styles.tabText,
-                activeTab === option && styles.activeTabText,
+                styles.tabButton,
+                activeTab === option && styles.activeTabButton,
               ]}
+              onPress={() => setActiveTab(option)}
             >
-              {option}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === option && styles.activeTabText,
+                ]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
+
+      {/* Loading indicator */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      )}
 
       {/* Logs List */}
       <FlatList
         data={filteredLogs}
         renderItem={renderLogItem}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No logs found</Text>
-          </View>
-        }
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.listContainer,
+          filteredLogs.length === 0 && styles.emptyListContainer
+        ]}
+        ListEmptyComponent={renderEmptyComponent}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
       />
-
-      {/* Bottom Indicator */}
-      <View style={styles.bottomIndicator} />
     </SafeAreaView>
   );
 };
@@ -202,25 +388,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f7',
-    paddingTop:50
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: Platform.OS === 'ios' ? 0 : 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+    backgroundColor: '#fff',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
   },
   backButton: {
     padding: 4,
+    width: 32,
+  },
+  addButton: {
+    padding: 4,
+    width: 32,
+  },
+  searchRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e9e9eb',
     borderRadius: 10,
-    paddingHorizontal: 8,
-    marginHorizontal: 8,
+    paddingHorizontal: 10,
     height: 36,
   },
   searchIcon: {
@@ -235,26 +438,18 @@ const styles = StyleSheet.create({
   clearIcon: {
     marginLeft: 6,
   },
-  micIcon: {
-    marginLeft: 6,
-  },
-  cancelButton: {
-    paddingVertical: 8,
-  },
-  cancelText: {
-    color: '#007AFF',
-    fontSize: 16,
-  },
   tabContainer: {
-    flexDirection: 'row',
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
-    backgroundColor: '#fff',
+  },
+  tabScrollContainer: {
+    paddingHorizontal: 8,
   },
   tabButton: {
-    flex: 1,
     paddingVertical: 12,
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
   },
   activeTabButton: {
     borderBottomWidth: 2,
@@ -268,18 +463,29 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContainer: {
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 24,
+  },
+  emptyListContainer: {
     flexGrow: 1,
   },
   notificationItem: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
     marginBottom: 8,
     padding: 16,
     borderRadius: 12,
     marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   contentContainer: {
     flex: 1,
@@ -287,11 +493,14 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   nameText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#000',
+    flex: 1,
+    marginRight: 8,
   },
   timeText: {
     fontSize: 14,
@@ -300,44 +509,67 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 14,
     color: '#3c3c43',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  typeContainer: {
+    backgroundColor: '#E5F1FF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
   typeText: {
-    fontSize: 14,
-    color: '#8e8e93',
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
   },
   actionButton: {
     padding: 6,
-    marginLeft: 8,
-  },
-  bottomIndicator: {
-    width: 134,
-    height: 5,
-    backgroundColor: '#000',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginBottom: 8,
-    marginTop: 8,
-    opacity: 0.2,
+    marginLeft: 12,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8e8e93',
+    textAlign: 'center',
+    marginHorizontal: 32,
+    marginBottom: 24,
+  },
+  addLogButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  addLogButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
+// Missing useState and useEffect imports
+import { useState, useEffect } from 'react';
+
+// Export the component as default to fix the missing default export warning
 export default DashboardLogScreen;

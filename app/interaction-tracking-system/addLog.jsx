@@ -110,18 +110,12 @@ const NewLogScreen = () => {
       // Update the log data with the Firestore document ID
       logData.firestoreId = docRef.id;
 
-      Alert.alert('Success', 'Log saved successfully!', [
+      // Updated success message with navigation to home
+      Alert.alert("Success", "Contact added successfully", [
         {
-          text: 'OK',
-          onPress: () => {
-            router.back();
-            // Navigate to the Notification Log Screen with the new log
-            router.push({
-              pathname: '/NotificationLogScreen',
-              params: { newLog: JSON.stringify(logData) },
-            });
-          },
-        },
+          text: "OK",
+          onPress: () => router.back()
+        }
       ]);
     } catch (error) {
       console.error('Error saving log: ', error);
