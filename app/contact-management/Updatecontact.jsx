@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import {View,Text,TextInput,TouchableOpacity,StyleSheet,SafeAreaView,TouchableWithoutFeedback,Modal,FlatList,Image} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, TouchableWithoutFeedback, Modal, FlatList, Image} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export default function UpdateContact() {
   const [contactType, setContactType] = useState('Select contact type');
@@ -8,10 +9,15 @@ export default function UpdateContact() {
   
   const contactTypes = ['Family', 'Friend', 'Office'];
 
+  // Handle back button navigation
+  const handleBackPress = () => {
+    router.push('/contact-management/Allcontact');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, StatusBar, Image, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-// Import Firebase functions for data retrieval
-import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
+// Import Firebase functions for data retrieval and deletion
+import { collection, getDocs, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 
 export default function AllContact() {
@@ -79,6 +79,32 @@ export default function AllContact() {
   }, [searchQuery, contacts]);
   // ========== END OF CONTACT FILTERING SECTION ==========
 
+  // ========== CONTACT DELETE FUNCTION ==========
+  // Function to delete a contact from Firestore
+  const deleteContact = async (contactId) => {
+    try {
+      // Reference to the specific contact document in Firestore
+      const contactRef = doc(FIREBASE_DB, "contacts", contactId);
+      
+      // Delete the document from Firestore
+      await deleteDoc(contactRef);
+      
+      console.log(`Contact with ID ${contactId} deleted successfully`);
+      
+      // No need to manually update the contacts list as the onSnapshot listener
+      // in the useEffect hook will automatically update the UI when the 
+      // Firestore database changes
+    } catch (error) {
+      console.error("Error deleting contact: ", error);
+      Alert.alert(
+        "Error",
+        "Failed to delete contact. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+  // ========== END OF CONTACT DELETE FUNCTION ==========
+
   // ========== CONTACT ITEM DISPLAY SECTION ==========
   // Render each contact item in the list
   const renderContactItem = ({ item }) => (
@@ -109,18 +135,18 @@ export default function AllContact() {
       <View style={styles.contactActions}>
         {/* Update action button */}
         <TouchableOpacity 
-  style={[styles.actionButton, styles.updateButton]}
-  onPress={() => {
-    console.log(`Update contact ${item.name}`);
-    // Navigate to update screen with contact ID and data
-    router.push({
-      pathname: '/contact-management/Updatecontact',
-      params: { id: item.id }
-    });
-  }}
->
-  <Ionicons name="create-outline" size={20} color="#4CAF50" />
-</TouchableOpacity>
+          style={[styles.actionButton, styles.updateButton]}
+          onPress={() => {
+            console.log(`Update contact ${item.name}`);
+            // Navigate to update screen with contact ID and data
+            router.push({
+              pathname: '/contact-management/Updatecontact',
+              params: { id: item.id }
+            });
+          }}
+        >
+          <Ionicons name="create-outline" size={20} color="#4CAF50" />
+        </TouchableOpacity>
         {/* Delete action button */}
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
@@ -139,8 +165,8 @@ export default function AllContact() {
                   text: "Delete",
                   onPress: () => {
                     console.log(`Confirmed delete for ${item.id}`);
-                    // Implement delete functionality here
-                    // Example: deleteContact(item.id);
+                    // Call the delete function with the contact ID
+                    deleteContact(item.id);
                   },
                   style: "destructive"
                 }
