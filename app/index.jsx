@@ -1,21 +1,29 @@
 import { Text, View, Button } from "react-native";
 import { useRouter } from "expo-router";
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
+import TabNavigation from './(tabs)/_layout';
 
-export default function Index() {
-  const router = useRouter(); // Navigation hook
 
+export default function App() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Welcome</Text>
-      <Button title="Groups" onPress={() => router.push("/Sharing&Collaboration/groups")} />
-    </View>
+    <>
+      <StatusBar style="auto" />
+      <TabNavigation />
+    </>
+
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+
+});
 
