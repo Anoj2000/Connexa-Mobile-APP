@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -25,44 +25,41 @@ const DashboardLogScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [logs, setLogs] = useState([]);
+  const [contacts, setContacts] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Filter options
   const filterOptions = ['All', 'Today', 'This week', 'This month'];
 
-  // Fetch logs data from Firestore
-  const fetchLogs = async () => {
+  // Fetch data from Firestore
+  const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Create a query to get logs ordered by creation date (newest first)
-      const logsQuery = query(
-        collection(FIREBASE_DB, 'logs'), 
-        orderBy('createdAt', 'desc')
-      );
+      // Fetch contacts
+      const contactsSnapshot = await getDocs(collection(FIREBASE_DB, 'contacts'));
+      const contactsData = {};
+      contactsSnapshot.forEach((doc) => {
+        const contact = doc.data();
+        contactsData[doc.id] = contact;
+      });
+      setContacts(contactsData);
       
-      // Execute the query
+      // Fetch logs
+      const logsQuery = query(collection(FIREBASE_DB, 'logs'), orderBy('createdAt', 'desc'));
       const logsSnapshot = await getDocs(logsQuery);
       
-      // Map the returned documents to our data structure
-      // focusing on name, date, note, and interactionType
-      const logsData = logsSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          contactName: data.contactName || 'Unknown Contact',
-          date: data.date ? data.date : data.createdAt ? data.createdAt.toDate() : new Date(),
-          note: data.note || 'No notes',
-          interactionType: data.interactionType || 'Other',
-          // Keep the original createdAt for sorting/filtering
-          createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
-        };
-      });
+      const logsData = logsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        // Convert Firestore timestamp to JS Date if it exists
+        createdAt: doc.data().createdAt ? doc.data().createdAt.toDate() : new Date(),
+      }));
       
       setLogs(logsData);
     } catch (error) {
-      console.error('Error fetching logs:', error);
+      console.error('Error fetching data:', error);
       Alert.alert('Error', 'Failed to load logs. Please try again.');
     } finally {
       setLoading(false);
@@ -72,31 +69,25 @@ const DashboardLogScreen = () => {
 
   // Initial data fetch
   useEffect(() => {
-    fetchLogs();
+    fetchData();
   }, []);
 
   // Check for new log from params and refresh
   useEffect(() => {
     if (params.newLog) {
-      fetchLogs();
+      fetchData();
     }
   }, [params.newLog]);
 
   // Handle refresh
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchLogs();
+    fetchData();
   };
 
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'No date';
-    
-    // If it's already a Date object
-    if (dateString instanceof Date) {
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return dateString.toLocaleDateString(undefined, options);
-    }
     
     // If it's already a formatted date string like "March 20, 2025"
     if (typeof dateString === 'string' && dateString.includes(',')) {
@@ -104,18 +95,19 @@ const DashboardLogScreen = () => {
     }
     
     // Try to parse the date
+    let date;
     try {
-      const date = new Date(dateString);
+      date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return dateString; // Return as is if parsing fails
       }
-      
-      // Format as "Month Day, Year"
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return date.toLocaleDateString(undefined, options);
     } catch (e) {
       return dateString;
     }
+    
+    // Format as "Month Day, Year"
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
   };
 
   // Get the current date at midnight for comparison
@@ -161,7 +153,28 @@ const DashboardLogScreen = () => {
       if (activeTab === 'All') return true;
       
       // Parse log date
-      let logDate = log.date instanceof Date ? log.date : log.createdAt;
+      let logDate;
+      
+      if (log.date) {
+        if (typeof log.date === 'string') {
+          try {
+            // Try to parse the date string
+            logDate = new Date(log.date);
+            if (isNaN(logDate.getTime())) {
+              // If string parsing fails, fall back to createdAt
+              logDate = log.createdAt || new Date();
+            }
+          } catch (e) {
+            logDate = log.createdAt || new Date();
+          }
+        } else {
+          // If it's already a Date object
+          logDate = log.date;
+        }
+      } else {
+        // Fallback to createdAt if date is not available
+        logDate = log.createdAt || new Date();
+      }
       
       // Set time to midnight for comparison
       const logDay = new Date(logDate);
@@ -221,22 +234,21 @@ const DashboardLogScreen = () => {
     router.push('/NewLogScreen');
   };
 
-  // Render each log item
   const renderLogItem = ({ item }) => (
-    <View style={styles.logItem}>
+    <View style={styles.notificationItem}>
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
-          <Text style={styles.nameText}>{item.contactName}</Text>
+          <Text style={styles.nameText}>{item.contactName || 'Unknown Contact'}</Text>
           <Text style={styles.timeText}>{formatDate(item.date)}</Text>
         </View>
 
         <Text style={styles.messageText} numberOfLines={2}>
-          {item.note}
+          {item.note || 'No notes'}
         </Text>
 
         <View style={styles.footerRow}>
           <View style={styles.typeContainer}>
-            <Text style={styles.typeText}>{item.interactionType}</Text>
+            <Text style={styles.typeText}>{item.interactionType || 'Other'}</Text>
           </View>
 
           <View style={styles.actionButtons}>
@@ -463,7 +475,7 @@ const styles = StyleSheet.create({
   emptyListContainer: {
     flexGrow: 1,
   },
-  logItem: {
+  notificationItem: {
     backgroundColor: '#fff',
     marginBottom: 8,
     padding: 16,
@@ -556,4 +568,8 @@ const styles = StyleSheet.create({
   },
 });
 
+// Missing useState and useEffect imports
+import { useState, useEffect } from 'react';
+
+// Export the component as default to fix the missing default export warning
 export default DashboardLogScreen;
