@@ -1,16 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  TouchableWithoutFeedback,
-  Modal,
-  FlatList,
-  Image
-} from 'react-native';
+import {View,Text,TextInput,TouchableOpacity,StyleSheet,SafeAreaView,TouchableWithoutFeedback,Modal,FlatList,Image} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function UpdateContact() {

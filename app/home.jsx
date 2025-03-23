@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, TextInput, StatusBar, Image, Animated, Dimensions, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { FIREBASE_DB } from '../firebaseConfig';
 import Sidebar from './Sidebar'; // Import the Sidebar component
 
@@ -44,29 +44,37 @@ const Home = () => {
     setSidebarVisible(!sidebarVisible);
   };
 
-  // Fetch contacts from Firestore
-  const fetchContacts = async () => {
+  // Fetch contacts from Firestore with real-time updates
+  const fetchContacts = () => {
     setLoading(true);
     try {
       const contactsCollection = collection(FIREBASE_DB, 'contacts');
       const contactsQuery = query(contactsCollection, orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(contactsQuery);
       
-      const contactsData = [];
-      querySnapshot.forEach((doc) => {
-        contactsData.push({
-          id: doc.id,
-          ...doc.data(),
-          // Add formatted date from timestamp if available
-          lastContacted: doc.data().createdAt ? new Date(doc.data().createdAt.toDate()).toLocaleDateString() : 'Never'
+      // Set up real-time listener using onSnapshot
+      const unsubscribe = onSnapshot(contactsQuery, (querySnapshot) => {
+        const contactsData = [];
+        querySnapshot.forEach((doc) => {
+          contactsData.push({
+            id: doc.id,
+            ...doc.data(),
+            // Add formatted date from timestamp if available
+            lastContacted: doc.data().createdAt ? new Date(doc.data().createdAt.toDate()).toLocaleDateString() : 'Never'
+          });
         });
+        
+        setContacts(contactsData);
+        setFilteredContacts(contactsData);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching contacts:', error);
+        setLoading(false);
       });
       
-      setContacts(contactsData);
-      setFilteredContacts(contactsData);
+      // Return the unsubscribe function
+      return unsubscribe;
     } catch (error) {
-      console.error('Error fetching contacts:', error);
-    } finally {
+      console.error('Error setting up contacts listener:', error);
       setLoading(false);
     }
   };
@@ -91,9 +99,17 @@ const Home = () => {
     setFilteredContacts(filtered);
   };
 
-  // Call fetchContacts on component mount
+  // Set up and clean up real-time listener on component mount
   useEffect(() => {
-    fetchContacts();
+    // Set up the real-time listener
+    const unsubscribe = fetchContacts();
+    
+    // Clean up listener when component unmounts
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
   
   // Separate favorites from other contacts (assuming contacts with type 'Family' are favorites)
@@ -123,9 +139,9 @@ const Home = () => {
         </View>
       </View>
       <View style={styles.contactActions}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}>📞</Text>
-        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.actionButton}>
+          <Text style={styles.actionButtonText}></Text>
+        </TouchableOpacity> */}
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionButtonText}>✉️</Text>
         </TouchableOpacity>
@@ -166,7 +182,7 @@ const Home = () => {
           <Text style={styles.headerTitle}>Contacts</Text>
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton} onPress={fetchContacts}>
+          <TouchableOpacity style={styles.headerButton} onPress={() => fetchContacts()}>
             <Text style={styles.headerButtonText}>🔄</Text>
           </TouchableOpacity>
         </View>
@@ -230,7 +246,12 @@ const Home = () => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={() => null} // We're using ListHeaderComponent instead
             refreshing={loading}
-            onRefresh={fetchContacts}
+            onRefresh={() => {
+              // This is still useful for manual refreshes (pull-to-refresh)
+              // The real-time listener will handle automatic updates
+              setLoading(true);
+              fetchContacts();
+            }}
           />
         )}
       </View>

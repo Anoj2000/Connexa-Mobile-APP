@@ -6,6 +6,7 @@ export default function Layout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="contact-management/addcontact" options={{ title: "Add Contact" }} />
+      <Stack.Screen name="contact-management/UpdateContact" options={{ title: "Update contact" }} />
       <Stack.Screen name="contact-management/Allcontact" options={{ title: "All Contacts" }} />
       {/* <Stack.Screen name="favorites" options={{ title: "Favorites" }} />
       <Stack.Screen name="recent" options={{ title: "Recent" }} />

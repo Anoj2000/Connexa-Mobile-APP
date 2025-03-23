@@ -109,15 +109,18 @@ export default function AllContact() {
       <View style={styles.contactActions}>
         {/* Update action button */}
         <TouchableOpacity 
-          style={[styles.actionButton, styles.updateButton]}
-          onPress={() => {
-            console.log(`Update contact ${item.name}`);
-            // Navigate to update screen with contact ID
-            // Example: router.push(`/contact-management/updatecontact?id=${item.id}`);
-          }}
-        >
-          <Ionicons name="create-outline" size={20} color="#4CAF50" />
-        </TouchableOpacity>
+  style={[styles.actionButton, styles.updateButton]}
+  onPress={() => {
+    console.log(`Update contact ${item.name}`);
+    // Navigate to update screen with contact ID and data
+    router.push({
+      pathname: '/contact-management/Updatecontact',
+      params: { id: item.id }
+    });
+  }}
+>
+  <Ionicons name="create-outline" size={20} color="#4CAF50" />
+</TouchableOpacity>
         {/* Delete action button */}
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
