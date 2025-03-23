@@ -1,5 +1,6 @@
+// firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth"; // ✅ Correct for Expo
+import { getAuth } from "firebase/auth"; // ✅ Expo-friendly
 import { getFirestore } from "firebase/firestore";
 import {
   FIREBASE_API_KEY,
@@ -22,9 +23,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const FIREBASE_APP = initializeApp(firebaseConfig);
-const FIREBASE_AUTH = getAuth(FIREBASE_APP); // ✅ Don't use initializeAuth
+const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 const FIREBASE_DB = getFirestore(FIREBASE_APP);
 
 export { FIREBASE_APP, FIREBASE_AUTH, FIREBASE_DB };
 
-console.log("✅ Firebase connected successfully");
+console.log("✅ Firebase initialized successfully");

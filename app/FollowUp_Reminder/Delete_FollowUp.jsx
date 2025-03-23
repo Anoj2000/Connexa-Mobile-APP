@@ -1,72 +1,47 @@
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView } from 'react-native'
-import React from 'react'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import React from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { FIREBASE_DB } from '../../firebaseConfig';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 const Delete_FollowUp = () => {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  
-  // Mock reminder data - in a real app, you would fetch this using the ID
-  const reminder = {
-    title: 'Acme Corp - Contract Renewal Follow-up',
-    dueDate: 'Feb 28, 2025 at 17:30',
-    assignedTo: 'You',
-    priority: 'Urgent'
+  const { id } = useLocalSearchParams();
+
+  const handleDelete = async () => {
+    try {
+      await deleteDoc(doc(FIREBASE_DB, 'reminders', id));
+
+      Alert.alert('Success', 'Reminder deleted successfully!', [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/FollowUp_Reminder/AllRemindersForDelete'),
+        },
+      ]);
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+      Alert.alert('Error', 'Failed to delete the reminder.');
+    }
   };
-  
-  const handleDelete = () => {
-    // Logic to delete the reminder goes here
-    // After deletion, navigate back
-    router.back();
-  };
-  
+
   const handleCancel = () => {
     router.back();
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Delete Reminder</Text>
-      </View>
-      
-      <View style={styles.contentContainer}>
-        <View style={styles.confirmationBox}>
-          <View style={styles.confirmationHeader}>
-            <Text style={styles.confirmationTitle}>Confirm Deletion</Text>
-            <TouchableOpacity onPress={handleCancel}>
-              <Text style={styles.closeButton}>×</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.confirmationContent}>
-            <Text style={styles.confirmationText}>
-              Are you sure you want to delete the following reminder?
-            </Text>
-            <Text style={styles.reminderTitle}>{reminder.title}</Text>
-            <Text style={styles.reminderDetail}>Due: {reminder.dueDate}</Text>
-            <Text style={styles.reminderDetail}>• Assigned to: {reminder.assignedTo}</Text>
-            <Text style={styles.reminderDetail}>• Priority: {reminder.priority}</Text>
-            
-            <Text style={styles.warningText}>
-              This action cannot be undone.
-            </Text>
-          </View>
-        </View>
-        
+      <View style={styles.box}>
+        <Text style={styles.title}>🗑 Confirm Deletion</Text>
+        <Text style={styles.text}>Are you sure you want to delete this reminder?</Text>
+        <Text style={styles.warning}>This action cannot be undone.</Text>
+
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.cancelButton}
-            onPress={handleCancel}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={handleDelete}
-          >
-            <Text style={styles.deleteButtonText}>Delete</Text>
+
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteText}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -80,101 +55,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    alignItems: 'center',
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
   },
-  confirmationBox: {
-    width: '100%',
-    backgroundColor: '#f8d7da',
-    borderRadius: 5,
-    overflow: 'hidden',
-    borderWidth: 1,
+  box: {
+    backgroundColor: '#fff3f3',
     borderColor: '#f5c6cb',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
-  confirmationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5c6cb',
-  },
-  confirmationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#721c24',
-  },
-  closeButton: {
-    fontSize: 22,
+  title: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#721c24',
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#b71c1c',
   },
-  confirmationContent: {
-    padding: 15,
-  },
-  confirmationText: {
-    fontSize: 14,
-    color: '#721c24',
+  text: {
+    fontSize: 16,
+    color: '#444',
     marginBottom: 10,
+    textAlign: 'center',
   },
-  reminderTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#721c24',
-    marginBottom: 5,
-  },
-  reminderDetail: {
+  warning: {
     fontSize: 14,
-    color: '#721c24',
-    marginBottom: 2,
-  },
-  warningText: {
-    fontSize: 14,
-    color: '#721c24',
-    marginTop: 15,
-    fontWeight: '500',
+    color: '#b71c1c',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    width: '100%',
+    justifyContent: 'space-between',
   },
-  cancelButton: {
-    backgroundColor: '#95A5A6',
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 4,
+  cancelBtn: {
+    backgroundColor: '#ccc',
+    padding: 12,
+    borderRadius: 6,
+    flex: 1,
     marginRight: 10,
+    alignItems: 'center',
   },
-  deleteButton: {
-    backgroundColor: '#DC3545',
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 4,
+  deleteBtn: {
+    backgroundColor: '#d32f2f',
+    padding: 12,
+    borderRadius: 6,
+    flex: 1,
+    alignItems: 'center',
   },
-  cancelButtonText: {
-    color: 'white',
-    fontWeight: '500',
+  cancelText: {
+    color: '#333',
+    fontWeight: '600',
   },
-  deleteButtonText: {
-    color: 'white',
-    fontWeight: '500',
+  deleteText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

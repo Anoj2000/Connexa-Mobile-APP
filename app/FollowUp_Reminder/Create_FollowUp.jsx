@@ -1,221 +1,216 @@
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import React, { useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Alert,
+  View,
+  ImageBackground,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { addDoc, collection } from 'firebase/firestore';
+import { FIREBASE_DB } from '../../firebaseConfig';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import moment from 'moment';
 
 const Create_FollowUp = () => {
   const router = useRouter();
+
   const [contact, setContact] = useState('');
-  const [title, setTitle] = useState('');
+  const [task, setTask] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [assignee, setAssignee] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState('');
 
-  const handleCreateReminder = () => {
-    if (!title.trim()) {
-      Alert.alert('Validation Error', 'Reminder Title is required.');
-      return;
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+  const handleDateConfirm = (date) => {
+    setDueDate(moment(date).format('YYYY-MM-DD'));
+    setDatePickerVisible(false);
+  };
+
+  const handleCreate = async () => {
+    if (!task || !dueDate || !assignedTo) {
+      return Alert.alert('Missing Fields', 'Please fill in all required fields.');
     }
-    if (!dueDate.trim()) {
-      Alert.alert('Validation Error', 'Due Date is required.');
-      return;
+
+    try {
+      await addDoc(collection(FIREBASE_DB, 'reminders'), {
+        contact,
+        task,
+        dueDate,
+        assignedTo,
+        status: priority,
+      });
+
+      Alert.alert('Success ✅', 'Reminder created successfully!', [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/FollowUp_Reminder/Reminder_Summary'),
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error ❌', 'Failed to create reminder.');
     }
-    if (!assignee.trim()) {
-      Alert.alert('Validation Error', 'Assign To is required.');
-      return;
-    }
-    
-    Alert.alert('Success', 'Follow-up reminder created successfully!');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Create New Follow-Up Reminder</Text>
-        </View>
-        
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Contact / Organization</Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Enter contact or organization"
-            value={contact}
-            onChangeText={setContact}
-          />
-          
-          <Text style={styles.label}>Reminder Title<Text style={styles.required}>*</Text></Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Enter reminder title"
-            value={title}
-            onChangeText={setTitle}
-          />
-          
-          <Text style={styles.label}>Due Date<Text style={styles.required}>*</Text></Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Select date"
-            value={dueDate}
-            onChangeText={setDueDate}
-          />
-          
-          <Text style={styles.label}>Assign To<Text style={styles.required}>*</Text></Text>
-          <TextInput 
-            style={styles.input}
-            placeholder="Select assignee"
-            value={assignee}
-            onChangeText={setAssignee}
-          />
-          
-          <Text style={styles.label}>Select Priority</Text>
-          <View style={styles.priorityContainer}>
-            <TouchableOpacity 
-              style={[styles.priorityButton, styles.urgentButton, priority === 'Urgent' && styles.selectedPriority]}
-              onPress={() => setPriority('Urgent')}
-            >
-              <Text style={styles.priorityText}>Urgent</Text>
+    <ImageBackground
+      source={{ uri: 'https://www.shutterstock.com/image-photo/human-communication-network-concept-resources-600nw-2003840618.jpg' }}
+      style={styles.background}
+      blurRadius={1}
+    >
+      <View style={styles.overlay}>
+        <SafeAreaView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <Text style={styles.title}>➕ Create Follow-Up</Text>
+
+            <Text style={styles.label}>Contact / Organization</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter contact"
+              value={contact}
+              onChangeText={setContact}
+            />
+
+            <Text style={styles.label}>Task *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Follow-up task"
+              value={task}
+              onChangeText={setTask}
+            />
+
+            <Text style={styles.label}>Due Date *</Text>
+            <TouchableOpacity style={styles.input} onPress={() => setDatePickerVisible(true)}>
+              <Text style={{ color: dueDate ? '#000' : '#999' }}>
+                {dueDate || 'Select date'}
+              </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.priorityButton, styles.highButton, priority === 'High' && styles.selectedPriority]}
-              onPress={() => setPriority('High')}
-            >
-              <Text style={styles.priorityText}>High</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.priorityButton, styles.normalButton, priority === 'Normal' && styles.selectedPriority]}
-              onPress={() => setPriority('Normal')}
-            >
-              <Text style={styles.priorityText}>Normal</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.priorityButton, styles.lowButton, priority === 'Low' && styles.selectedPriority]}
-              onPress={() => setPriority('Low')}
-            >
-              <Text style={styles.priorityText}>Low</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.createButton}
-              onPress={handleCreateReminder}
-            >
+
+            <DateTimePickerModal
+              isVisible={datePickerVisible}
+              mode="date"
+              onConfirm={handleDateConfirm}
+              onCancel={() => setDatePickerVisible(false)}
+            />
+
+            <Text style={styles.label}>Assigned To *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Assign to"
+              value={assignedTo}
+              onChangeText={setAssignedTo}
+            />
+
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.priorityContainer}>
+              {['Urgent', 'High', 'Normal', 'Low'].map((level) => (
+                <TouchableOpacity
+                  key={level}
+                  style={[
+                    styles.priorityButton,
+                    styles[`${level.toLowerCase()}Button`],
+                    priority === level && styles.selectedPriority,
+                  ]}
+                  onPress={() => setPriority(level)}
+                >
+                  <Text style={styles.priorityText}>{level}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
               <Text style={styles.createButtonText}>Create Reminder</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </ImageBackground>
   );
 };
 
 export default Create_FollowUp;
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  overlay: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
   },
-  header: {
-    padding: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    alignItems: 'center',
+  scrollContent: {
+    paddingBottom: 40,
   },
-  headerText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  formContainer: {
-    padding: 15,
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 30,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   label: {
-    fontSize: 14,
-    marginBottom: 5,
     fontWeight: '500',
+    color: '#fff',
+    marginBottom: 4,
     marginTop: 10,
   },
-  required: {
-    color: 'red',
-  },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    height: 40,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: 12,
+    borderRadius: 6,
     marginBottom: 10,
   },
   priorityContainer: {
     flexDirection: 'row',
-    marginTop: 5,
+    flexWrap: 'wrap',
+    marginTop: 6,
     marginBottom: 20,
   },
   priorityButton: {
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 4,
+    borderRadius: 6,
     marginRight: 8,
+    marginBottom: 8,
   },
-  urgentButton: {
-    backgroundColor: '#E74C3C',
-  },
-  highButton: {
-    backgroundColor: '#F39C12',
-  },
-  normalButton: {
-    backgroundColor: '#3498DB',
-  },
-  lowButton: {
-    backgroundColor: '#95A5A6',
-  },
+  urgentButton: { backgroundColor: '#E74C3C' },
+  highButton: { backgroundColor: '#F39C12' },
+  normalButton: { backgroundColor: '#3498DB' },
+  lowButton: { backgroundColor: '#95A5A6' },
   selectedPriority: {
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: '#fff',
   },
   priorityText: {
-    color: 'white',
-    fontWeight: '500',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#95A5A6',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 4,
-    flex: 1,
-    marginRight: 10,
-    alignItems: 'center',
+    color: '#fff',
+    fontWeight: '600',
   },
   createButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 4,
-    flex: 1.5,
+    backgroundColor: '#007AFF',
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: 'white',
-    fontWeight: '500',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 2, height: 3 },
+    elevation: 5,
   },
   createButtonText: {
-    color: 'white',
-    fontWeight: '500',
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
