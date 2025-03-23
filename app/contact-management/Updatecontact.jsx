@@ -11,7 +11,7 @@ export default function UpdateContact() {
 
   // Handle back button navigation
   const handleBackPress = () => {
-    router.push('/contact-management/Allcontact');
+    router.push('/contact-management/AllContact');
   };
 
   return (
