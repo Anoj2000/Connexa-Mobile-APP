@@ -9,7 +9,7 @@ export default function Sidebar() {
 
     { icon: '☎️', title: 'All Contacts', screen: 'contact-management/Allcontact' },
     { icon: '⭐', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
-    { icon: '🕒', title: 'Recent', screen: 'recent' },
+    { icon: '🕒', title: 'Share collabaration', screen: 'Sharing&Collaboration/groups' },
     { icon: '⚙️', title: 'Settings', screen: 'settings' },
     { icon: '❓', title: 'Help & Feedback', screen: 'help' },
   ];
