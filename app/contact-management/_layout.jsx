@@ -14,7 +14,7 @@ export default function Layout() {
       <Stack.Screen name="settings" options={{ title: "Settings" }} />
       <Stack.Screen name="help" options={{ title: "Help & Feedback" }} /> */}
 
-      <Stack.Screen name="contact-management/addcontact" options={{ title: "Add Contact", headerShown: false }} />
+      {/* <Stack.Screen name="contact-management/addcontact" options={{ title: "Add Contact", headerShown: false }} /> */}
 
       {/* <Stack.Screen name="contact-management/updatecontact" options={{ title: "Update Contact" }} /> */}
     </Stack>
