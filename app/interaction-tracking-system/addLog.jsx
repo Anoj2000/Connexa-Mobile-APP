@@ -23,9 +23,10 @@ const NewLogScreen = () => {
   const [noteText, setNoteText] = useState('');
   const [showInteractionOptions, setShowInteractionOptions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Interaction types
-  const interactionTypes = ['Message', 'Email', 'Meeting'];
+  // Interaction types - Meeting removed
+  const interactionTypes = ['Message', 'Email'];
 
   // Date options
   const months = [
@@ -35,12 +36,21 @@ const NewLogScreen = () => {
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
   const years = ['2021', '2022', '2023', '2024', '2025'];
 
-  // Get current date for default values
+  // Time options
+  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+
+  // Get current date and time for default values
   const currentDate = new Date();
   const [dateSelection, setDateSelection] = useState({
     month: months[currentDate.getMonth()],
     day: currentDate.getDate().toString(),
     year: currentDate.getFullYear().toString(),
+  });
+
+  const [timeSelection, setTimeSelection] = useState({
+    hour: currentDate.getHours().toString().padStart(2, '0'),
+    minute: currentDate.getMinutes().toString().padStart(2, '0'),
   });
 
   // Handle date selection
@@ -49,6 +59,22 @@ const NewLogScreen = () => {
       ...prev,
       [type]: value,
     }));
+  };
+
+  // Handle time selection
+  const handleTimeSelect = (type, value) => {
+    setTimeSelection(prev => ({
+      ...prev,
+      [type]: value,
+    }));
+  };
+
+  // Format time for display
+  const formatTimeForDisplay = () => {
+    const hour = parseInt(timeSelection.hour);
+    const isPM = hour >= 12;
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+    return `${displayHour}:${timeSelection.minute} ${isPM ? 'PM' : 'AM'}`;
   };
 
   // Get previous and next month for date selector display
@@ -99,6 +125,8 @@ const NewLogScreen = () => {
       contactName: contactName.trim(),
       interactionType: selectedInteraction,
       date: `${dateSelection.month} ${dateSelection.day}, ${dateSelection.year}`,
+      time: `${timeSelection.hour}:${timeSelection.minute}`,
+      displayTime: formatTimeForDisplay(),
       note: noteText.trim(),
       createdAt: Timestamp.now(),
     };
@@ -110,18 +138,12 @@ const NewLogScreen = () => {
       // Update the log data with the Firestore document ID
       logData.firestoreId = docRef.id;
 
-      Alert.alert('Success', 'Log saved successfully!', [
+      // Updated success message with navigation to home
+      Alert.alert("Success", "Contact added successfully", [
         {
-          text: 'OK',
-          onPress: () => {
-            router.back();
-            // Navigate to the Notification Log Screen with the new log
-            router.push({
-              pathname: '/NotificationLogScreen',
-              params: { newLog: JSON.stringify(logData) },
-            });
-          },
-        },
+          text: "OK",
+          onPress: () => router.back()
+        }
       ]);
     } catch (error) {
       console.error('Error saving log: ', error);
@@ -195,6 +217,17 @@ const NewLogScreen = () => {
                 <Text style={[styles.dateNumber, styles.dateTextInactive]}>{nextDay}</Text>
                 <Text style={[styles.dateText, styles.dateTextInactive]}>{dateSelection.year}</Text>
               </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Select Time</Text>
+            <TouchableOpacity
+              style={styles.timeContainer}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={styles.timeText}>{formatTimeForDisplay()}</Text>
+              <Text style={styles.dropdownArrow}>∨</Text>
             </TouchableOpacity>
           </View>
 
@@ -370,6 +403,89 @@ const NewLogScreen = () => {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Time Picker Modal */}
+        <Modal
+          visible={showTimePicker}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowTimePicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowTimePicker(false)}
+          >
+            <View style={styles.datePicker}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Time</Text>
+                <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                  <Text style={styles.datePickerDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.dateSelectors}>
+                <View style={styles.dateColumn}>
+                  <Text style={styles.dateColumnHeader}>Hour</Text>
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerScrollContent}
+                  >
+                    {hours.map((hour, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.dateOption,
+                          timeSelection.hour === hour && styles.selectedDateOption,
+                        ]}
+                        onPress={() => handleTimeSelect('hour', hour)}
+                      >
+                        <Text
+                          style={
+                            timeSelection.hour === hour
+                              ? styles.selectedDateText
+                              : styles.dateOptionText
+                          }
+                        >
+                          {hour}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.dateColumn}>
+                  <Text style={styles.dateColumnHeader}>Minute</Text>
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerScrollContent}
+                  >
+                    {minutes.map((minute, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.dateOption,
+                          timeSelection.minute === minute && styles.selectedDateOption,
+                        ]}
+                        onPress={() => handleTimeSelect('minute', minute)}
+                      >
+                        <Text
+                          style={
+                            timeSelection.minute === minute
+                              ? styles.selectedDateText
+                              : styles.dateOptionText
+                          }
+                        >
+                          {minute}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -506,6 +622,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 8,
     overflow: 'hidden',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginVertical: 8,
+  },
+  timeText: {
+    fontSize: 16,
+    color: '#000',
   },
   dateRow: {
     flexDirection: 'row',
