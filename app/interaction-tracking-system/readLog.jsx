@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
 
 const DashboardLogScreen = () => {
   const router = useRouter();
@@ -108,6 +109,31 @@ const DashboardLogScreen = () => {
     // Format as "Month Day, Year"
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString(undefined, options);
+  };
+
+  // Format date and time for display
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'No date';
+    
+    // Try to parse the date
+    let date;
+    try {
+      date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return as is if parsing fails
+      }
+    } catch (e) {
+      return dateString;
+    }
+    
+    // Format as "Month Day, Year at HH:MM AM/PM"
+    const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const timeOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
+    
+    const formattedDate = date.toLocaleDateString(undefined, dateOptions);
+    const formattedTime = date.toLocaleTimeString(undefined, timeOptions);
+    
+    return `${formattedDate} at ${formattedTime}`;
   };
 
   // Get the current date at midnight for comparison
@@ -239,7 +265,7 @@ const DashboardLogScreen = () => {
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
           <Text style={styles.nameText}>{item.contactName || 'Unknown Contact'}</Text>
-          <Text style={styles.timeText}>{formatDate(item.date)}</Text>
+          <Text style={styles.timeText}>{formatDateTime(item.date || item.createdAt)}</Text>
         </View>
 
         <Text style={styles.messageText} numberOfLines={2}>
@@ -568,8 +594,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// Missing useState and useEffect imports
-import { useState, useEffect } from 'react';
-
-// Export the component as default to fix the missing default export warning
 export default DashboardLogScreen;
