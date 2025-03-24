@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
   Modal,
   ScrollView,
   Alert,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 
 const NewLogScreen = () => {
@@ -24,52 +25,76 @@ const NewLogScreen = () => {
   const [showInteractionOptions, setShowInteractionOptions] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [contacts, setContacts] = useState([]);
+  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Interaction types - Meeting removed
+  // Load contacts from Firestore
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(FIREBASE_DB, 'contacts'));
+        const contactsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setContacts(contactsData);
+      } catch (error) {
+        console.error('Error fetching contacts: ', error);
+      }
+    };
+    
+    fetchContacts();
+  }, []);
+
+  // Filter contacts based on input
+  useEffect(() => {
+    if (contactName.length > 0) {
+      const filtered = contacts.filter(contact =>
+        contact.name.toLowerCase().includes(contactName.toLowerCase())
+      );
+      setFilteredContacts(filtered);
+      setShowSuggestions(true);
+    } else {
+      setFilteredContacts([]);
+      setShowSuggestions(false);
+    }
+  }, [contactName, contacts]);
+
+  // Interaction types
   const interactionTypes = ['Message', 'Email'];
 
-  // Date options
+  // Date and time options
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
   const years = ['2021', '2022', '2023', '2024', '2025'];
-
-  // Time options
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-  // Get current date and time for default values
+  // Current date and time
   const currentDate = new Date();
   const [dateSelection, setDateSelection] = useState({
     month: months[currentDate.getMonth()],
     day: currentDate.getDate().toString(),
     year: currentDate.getFullYear().toString(),
   });
-
   const [timeSelection, setTimeSelection] = useState({
     hour: currentDate.getHours().toString().padStart(2, '0'),
     minute: currentDate.getMinutes().toString().padStart(2, '0'),
   });
 
-  // Handle date selection
+  // Handler functions
   const handleDateSelect = (type, value) => {
-    setDateSelection(prev => ({
-      ...prev,
-      [type]: value,
-    }));
+    setDateSelection(prev => ({ ...prev, [type]: value }));
   };
 
-  // Handle time selection
   const handleTimeSelect = (type, value) => {
-    setTimeSelection(prev => ({
-      ...prev,
-      [type]: value,
-    }));
+    setTimeSelection(prev => ({ ...prev, [type]: value }));
   };
 
-  // Format time for display
   const formatTimeForDisplay = () => {
     const hour = parseInt(timeSelection.hour);
     const isPM = hour >= 12;
@@ -77,11 +102,10 @@ const NewLogScreen = () => {
     return `${displayHour}:${timeSelection.minute} ${isPM ? 'PM' : 'AM'}`;
   };
 
-  // Get previous and next month for date selector display
   const getAdjacentMonths = () => {
     const currentMonthIndex = months.indexOf(dateSelection.month);
-    const prevMonthIndex = (currentMonthIndex === 0) ? 11 : currentMonthIndex - 1;
-    const nextMonthIndex = (currentMonthIndex === 11) ? 0 : currentMonthIndex + 1;
+    const prevMonthIndex = currentMonthIndex === 0 ? 11 : currentMonthIndex - 1;
+    const nextMonthIndex = currentMonthIndex === 11 ? 0 : currentMonthIndex + 1;
     
     return {
       prevMonth: months[prevMonthIndex],
@@ -93,14 +117,16 @@ const NewLogScreen = () => {
 
   const { prevMonth, nextMonth, prevDay, nextDay } = getAdjacentMonths();
 
-  // Generate unique ID
   const generateUniqueId = () => {
     return `log_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   };
 
-  // Handle save log
+  const handleContactSelect = (name) => {
+    setContactName(name);
+    setShowSuggestions(false);
+  };
+
   const handleSaveLog = async () => {
-    // Validation for contact name (only alphabets and spaces allowed)
     const nameRegex = /^[A-Za-z\s]+$/;
     if (!contactName.trim()) {
       Alert.alert('Missing Info', 'Please enter a contact name.');
@@ -132,18 +158,10 @@ const NewLogScreen = () => {
     };
 
     try {
-      // Save log to Firestore
       const docRef = await addDoc(collection(FIREBASE_DB, 'logs'), logData);
-
-      // Update the log data with the Firestore document ID
       logData.firestoreId = docRef.id;
-
-      // Updated success message with navigation to home
       Alert.alert("Success", "Contact added successfully", [
-        {
-          text: "OK",
-          onPress: () => router.back()
-        }
+        { text: "OK", onPress: () => router.back() }
       ]);
     } catch (error) {
       console.error('Error saving log: ', error);
@@ -167,90 +185,118 @@ const NewLogScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Contact Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter contact name"
-              value={contactName}
-              onChangeText={setContactName}
-              placeholderTextColor="#999"
-              keyboardType="default"
-              autoCapitalize="words"
-            />
-          </View>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Contact Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter contact name"
+                value={contactName}
+                onChangeText={setContactName}
+                placeholderTextColor="#999"
+                keyboardType="default"
+                autoCapitalize="words"
+                onFocus={() => contactName.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+            </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Interaction</Text>
-            <TouchableOpacity
-              style={styles.dropdownSelector}
-              onPress={() => setShowInteractionOptions(true)}
-            >
-              <Text style={selectedInteraction ? styles.selectedText : styles.placeholderText}>
-                {selectedInteraction || 'Choose Type'}
-              </Text>
-              <Text style={styles.dropdownArrow}>∨</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Interaction</Text>
+              <TouchableOpacity
+                style={styles.dropdownSelector}
+                onPress={() => setShowInteractionOptions(true)}
+              >
+                <Text style={selectedInteraction ? styles.selectedText : styles.placeholderText}>
+                  {selectedInteraction || 'Choose Type'}
+                </Text>
+                <Text style={styles.dropdownArrow}>∨</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Date</Text>
+              <TouchableOpacity
+                style={styles.dateContainer}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <View style={styles.dateRow}>
+                  <Text style={[styles.dateText, styles.dateTextInactive]}>{prevMonth}</Text>
+                  <Text style={[styles.dateNumber, styles.dateTextInactive]}>{prevDay}</Text>
+                  <Text style={[styles.dateText, styles.dateTextInactive]}>{dateSelection.year}</Text>
+                </View>
+
+                <View style={[styles.dateRow, styles.selectedDateRow]}>
+                  <Text style={styles.dateText}>{dateSelection.month}</Text>
+                  <Text style={styles.dateNumber}>{dateSelection.day}</Text>
+                  <Text style={styles.dateText}>{dateSelection.year}</Text>
+                </View>
+
+                <View style={styles.dateRow}>
+                  <Text style={[styles.dateText, styles.dateTextInactive]}>{nextMonth}</Text>
+                  <Text style={[styles.dateNumber, styles.dateTextInactive]}>{nextDay}</Text>
+                  <Text style={[styles.dateText, styles.dateTextInactive]}>{dateSelection.year}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Time</Text>
+              <TouchableOpacity
+                style={styles.timeContainer}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text style={styles.timeText}>{formatTimeForDisplay()}</Text>
+                <Text style={styles.dropdownArrow}>∨</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Note and Summary</Text>
+              <TextInput
+                style={[styles.input, styles.noteInput]}
+                placeholder="Add details about this interaction"
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveLog}>
+              <Text style={styles.saveButtonText}>Save Log</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Date</Text>
-            <TouchableOpacity
-              style={styles.dateContainer}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <View style={styles.dateRow}>
-                <Text style={[styles.dateText, styles.dateTextInactive]}>{prevMonth}</Text>
-                <Text style={[styles.dateNumber, styles.dateTextInactive]}>{prevDay}</Text>
-                <Text style={[styles.dateText, styles.dateTextInactive]}>{dateSelection.year}</Text>
-              </View>
-
-              <View style={[styles.dateRow, styles.selectedDateRow]}>
-                <Text style={styles.dateText}>{dateSelection.month}</Text>
-                <Text style={styles.dateNumber}>{dateSelection.day}</Text>
-                <Text style={styles.dateText}>{dateSelection.year}</Text>
-              </View>
-
-              <View style={styles.dateRow}>
-                <Text style={[styles.dateText, styles.dateTextInactive]}>{nextMonth}</Text>
-                <Text style={[styles.dateNumber, styles.dateTextInactive]}>{nextDay}</Text>
-                <Text style={[styles.dateText, styles.dateTextInactive]}>{dateSelection.year}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Time</Text>
-            <TouchableOpacity
-              style={styles.timeContainer}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={styles.timeText}>{formatTimeForDisplay()}</Text>
-              <Text style={styles.dropdownArrow}>∨</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Note and Summary</Text>
-            <TextInput
-              style={[styles.input, styles.noteInput]}
-              placeholder="Add details about this interaction"
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveLog}>
-            <Text style={styles.saveButtonText}>Save Log</Text>
-          </TouchableOpacity>
         </ScrollView>
 
-        {/* Interaction Selection Modal */}
+        {/* Suggestions dropdown - rendered outside ScrollView */}
+        {showSuggestions && filteredContacts.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            <FlatList
+              data={filteredContacts}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.suggestionItem}
+                  onPress={() => handleContactSelect(item.name)}
+                >
+                  <Text style={styles.suggestionText}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+              keyboardShouldPersistTaps="always"
+              nestedScrollEnabled
+            />
+          </View>
+        )}
+
+        {/* Modals */}
         <Modal
           visible={showInteractionOptions}
           transparent={true}
@@ -315,89 +361,86 @@ const NewLogScreen = () => {
               <View style={styles.dateSelectors}>
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateColumnHeader}>Month</Text>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerScrollContent}
-                  >
-                    {months.map((month, index) => (
+                  <FlatList
+                    data={months}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
                       <TouchableOpacity
-                        key={index}
                         style={[
                           styles.dateOption,
-                          dateSelection.month === month && styles.selectedDateOption,
+                          dateSelection.month === item && styles.selectedDateOption,
                         ]}
-                        onPress={() => handleDateSelect('month', month)}
+                        onPress={() => handleDateSelect('month', item)}
                       >
                         <Text
                           style={
-                            dateSelection.month === month
+                            dateSelection.month === item
                               ? styles.selectedDateText
                               : styles.dateOptionText
                           }
                         >
-                          {month}
+                          {item}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
                 </View>
 
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateColumnHeader}>Day</Text>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerScrollContent}
-                  >
-                    {days.map((day, index) => (
+                  <FlatList
+                    data={days}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
                       <TouchableOpacity
-                        key={index}
                         style={[
                           styles.dateOption,
-                          dateSelection.day === day && styles.selectedDateOption,
+                          dateSelection.day === item && styles.selectedDateOption,
                         ]}
-                        onPress={() => handleDateSelect('day', day)}
+                        onPress={() => handleDateSelect('day', item)}
                       >
                         <Text
                           style={
-                            dateSelection.day === day
+                            dateSelection.day === item
                               ? styles.selectedDateText
                               : styles.dateOptionText
                           }
                         >
-                          {day}
+                          {item}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
                 </View>
 
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateColumnHeader}>Year</Text>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerScrollContent}
-                  >
-                    {years.map((year, index) => (
+                  <FlatList
+                    data={years}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
                       <TouchableOpacity
-                        key={index}
                         style={[
                           styles.dateOption,
-                          dateSelection.year === year && styles.selectedDateOption,
+                          dateSelection.year === item && styles.selectedDateOption,
                         ]}
-                        onPress={() => handleDateSelect('year', year)}
+                        onPress={() => handleDateSelect('year', item)}
                       >
                         <Text
                           style={
-                            dateSelection.year === year
+                            dateSelection.year === item
                               ? styles.selectedDateText
                               : styles.dateOptionText
                           }
                         >
-                          {year}
+                          {item}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
                 </View>
               </View>
             </View>
@@ -427,60 +470,58 @@ const NewLogScreen = () => {
               <View style={styles.dateSelectors}>
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateColumnHeader}>Hour</Text>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerScrollContent}
-                  >
-                    {hours.map((hour, index) => (
+                  <FlatList
+                    data={hours}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
                       <TouchableOpacity
-                        key={index}
                         style={[
                           styles.dateOption,
-                          timeSelection.hour === hour && styles.selectedDateOption,
+                          timeSelection.hour === item && styles.selectedDateOption,
                         ]}
-                        onPress={() => handleTimeSelect('hour', hour)}
+                        onPress={() => handleTimeSelect('hour', item)}
                       >
                         <Text
                           style={
-                            timeSelection.hour === hour
+                            timeSelection.hour === item
                               ? styles.selectedDateText
                               : styles.dateOptionText
                           }
                         >
-                          {hour}
+                          {item}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
                 </View>
 
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateColumnHeader}>Minute</Text>
-                  <ScrollView 
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerScrollContent}
-                  >
-                    {minutes.map((minute, index) => (
+                  <FlatList
+                    data={minutes}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
                       <TouchableOpacity
-                        key={index}
                         style={[
                           styles.dateOption,
-                          timeSelection.minute === minute && styles.selectedDateOption,
+                          timeSelection.minute === item && styles.selectedDateOption,
                         ]}
-                        onPress={() => handleTimeSelect('minute', minute)}
+                        onPress={() => handleTimeSelect('minute', item)}
                       >
                         <Text
                           style={
-                            timeSelection.minute === minute
+                            timeSelection.minute === item
                               ? styles.selectedDateText
                               : styles.dateOptionText
                           }
                         >
-                          {minute}
+                          {item}
                         </Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
                 </View>
               </View>
             </View>
@@ -527,12 +568,14 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: 'right',
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  contentContainer: {
-    padding: 16,
+  scrollViewContent: {
     paddingBottom: 40,
+  },
+  content: {
+    padding: 16,
   },
   inputGroup: {
     marginBottom: 24,
@@ -713,9 +756,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontWeight: '500',
   },
-  datePickerScrollContent: {
-    paddingVertical: 10,
-  },
   dateOption: {
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -733,6 +773,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#007AFF',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 16,
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    backgroundColor: 'white',
+    zIndex: 1000,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
 
