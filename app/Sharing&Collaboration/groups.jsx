@@ -19,8 +19,8 @@ export default function Groups() {
         <Text style={styles.pageTitle}>Manage Groups</Text>
 
         {/* Navigation Buttons */}
-        <LinkButton href="/Sharing&Collaboration/CreateGroupScreen" text="➕ Create a New Group" />
         <LinkButton href="/Sharing&Collaboration/AllGroups" text="👥 View All Groups" />
+        <LinkButton href="/Sharing&Collaboration/CreateGroupScreen" text="➕ Create a New Group" />
         <LinkButton href="/Sharing&Collaboration/EditGroup" text="✏️ Edit Group" />
         <LinkButton href="/Sharing&Collaboration/DeleteGroup" text="🗑️ Delete Group" />
       </View>

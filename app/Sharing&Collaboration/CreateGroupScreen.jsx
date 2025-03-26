@@ -155,16 +155,18 @@ const CreateGroupScreen = () => {
 
           {/* ✅ Create Group Button */}
           <TouchableOpacity style={styles.buttonContainer} onPress={handleCreateGroup}>
-            <LinearGradient colors={["#4A90E2", "#1E3C72"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
-              <Text style={styles.buttonText}>Create Group</Text>
-            </LinearGradient>
+          <LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
+            <Text style={styles.buttonText}>Create Group</Text>
+          </LinearGradient>
+
           </TouchableOpacity>
 
           {/* ✅ Cancel Button */}
           <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push("/")}>
-            <LinearGradient colors={["#FF6F61", "#D63031"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
-              <Text style={styles.buttonText}>Cancel</Text>
-            </LinearGradient>
+          <LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
+            <Text style={styles.buttonText}>Cancel</Text>
+          </LinearGradient>
+
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -279,11 +281,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: "100%",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
   },
   buttonText: {
     fontSize: 16,

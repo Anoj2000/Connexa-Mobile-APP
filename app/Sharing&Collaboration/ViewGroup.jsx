@@ -77,16 +77,17 @@ const ViewGroup = () => {
 
       {/* ✅ Update Button */}
 <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push({ pathname: "/Sharing&Collaboration/EditOneGroup", params: { id: group.id } })}>
-  <LinearGradient colors={["#4A90E2", "#1E3C72"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
-    <Text style={styles.buttonText}>Update</Text>
-  </LinearGradient>
+<LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
+  <Text style={styles.buttonText}>Update</Text>
+</LinearGradient>
+
 </TouchableOpacity>
 
 {/* ✅ Back Button */}
 <TouchableOpacity style={styles.buttonContainer} onPress={() => router.back()}>
-  <LinearGradient colors={["#FF6F61", "#D63031"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
-    <Text style={styles.buttonText}>Back</Text>
-  </LinearGradient>
+<LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
+  <Text style={styles.buttonText}>Back</Text>
+</LinearGradient>
 </TouchableOpacity>
     </ScrollView>
   );
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#fff",
   },
   error: {
     color: "#e74c3c",
