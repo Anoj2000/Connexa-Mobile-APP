@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { generatePDF } from "./pdfGenerator";  // ✅ Import PDF function
+
 import {
   View,
   Text,
@@ -82,6 +84,14 @@ const ViewGroup = () => {
 </LinearGradient>
 
 </TouchableOpacity>
+
+{/* ✅ Report Button */}
+<TouchableOpacity style={styles.buttonContainer} onPress={() => generatePDF(group)}>
+  <LinearGradient colors={["#28a745", "#28a745"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
+    <Text style={styles.buttonText}>Report</Text>
+  </LinearGradient>
+</TouchableOpacity>
+
 
 {/* ✅ Back Button */}
 <TouchableOpacity style={styles.buttonContainer} onPress={() => router.back()}>
