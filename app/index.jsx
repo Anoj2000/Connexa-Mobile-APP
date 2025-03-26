@@ -1,5 +1,3 @@
-import { Text, View, Button } from "react-native";
-import { useRouter } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
