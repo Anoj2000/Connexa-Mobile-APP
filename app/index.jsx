@@ -1,4 +1,3 @@
-// app/index.jsx
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -9,9 +8,14 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Button,
 } from 'react-native';
 import { Link } from 'expo-router';
 import Sidebar from '../app/Sidebar';
+import { useRouter } from "expo-router";
+import { StatusBar } from 'expo-status-bar';
+import "../firebaseConfig";
+import TabNavigation from './(tabs)/_layout';
 
 const { width } = Dimensions.get('window');
 

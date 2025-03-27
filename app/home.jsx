@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, StatusBar, Image, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, StatusBar, Image, Animated, Dimensions, Modal } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import Sidebar from './Sidebar'; // Import the Sidebar component
 
 const ContactsScreen = ({ contacts = [] }) => {
+  // Initialize navigation
+  const navigation = useNavigation();
+  
   // State to control sidebar visibility
   const [sidebarVisible, setSidebarVisible] = useState(false);
   
   // Create animated value for sidebar animation
   const [sidebarAnimation] = useState(new Animated.Value(-300)); // Start off-screen
+  
+  // Add modal state
+  const [modalVisible, setModalVisible] = useState(false);
   
   // Toggle sidebar function
   const toggleSidebar = () => {
@@ -115,9 +123,73 @@ const ContactsScreen = ({ contacts = [] }) => {
       </View>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
+      
+      {/* Updated Action Selection Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>SELECT ACTION</Text>
+            
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  // Navigate to AddContact screen using expo-router
+                  router.push('/contact-management/addcontact');
+                }}
+              >
+                <View style={styles.optionIconContainer}>
+                  <Text style={styles.optionIcon}>👤</Text>
+                </View>
+                <Text style={styles.optionText}>ADD CONTACT</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  // Navigate to add interaction screen
+                  router.push('/interaction-tracking-system/addLog');
+                }}
+              >
+                <View style={styles.optionIconContainer}>
+                  <Text style={styles.optionIcon}>🔄</Text>
+                </View>
+                <Text style={styles.optionText}>ADD INTERACTION</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  // Navigate to add contact group screen
+                  // router.push('/contact-management/addcontactgroup');
+                }}
+              >
+                <View style={styles.optionIconContainer}>
+                  <Text style={styles.optionIcon}>🔄</Text>
+                </View>
+                <Text style={styles.optionText}>ADD CONTACT GROUP</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>CANCEL</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -280,5 +352,68 @@ const styles = StyleSheet.create({
   fabIcon: {
     fontSize: 30,
     color: 'white',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: width * 0.8,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2979FF',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  optionIcon: {
+    fontSize: 20,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#444',
+  },
+  closeButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#555',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

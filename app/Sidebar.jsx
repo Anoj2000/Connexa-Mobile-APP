@@ -1,17 +1,25 @@
+import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+
 
 export default function Sidebar() {
   // Menu items
   const menuItems = [
-    // { icon: '👤', title: 'Profile', screen: 'Profile' },
-    { icon: '☎️', title: 'All Contacts', screen: 'Contacts' },
-    { icon: '⭐', title: 'Favorites', screen: 'Favorites' },
-    { icon: '🕒', title: 'Recent', screen: 'Recent' },
-    { icon: '📷', title: 'Shared Photos', screen: 'SharedPhotos' },
-    { icon: '⚙️', title: 'Settings', screen: 'Settings' },
-    { icon: '❓', title: 'Help & Feedback', screen: 'Help' },
+
+    { icon: '☎️', title: 'All Contacts', screen: 'contact-management/Allcontact' },
+    { icon: '⭐', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
+    { icon: '🕒', title: 'Share collabaration', screen: 'Sharing&Collaboration/groups' },
+    { icon: '⚙️', title: 'Settings', screen: 'settings' },
+    { icon: '❓', title: 'Help & Feedback', screen: 'help' },
   ];
+
+  const handleNavigation = (screen) => {
+    // Navigate to the selected screen
+    router.push(`/${screen}`);
+    // You might want to close the sidebar here if you have a function for that
+  };
+
 
   return (
     <View style={styles.container}>
@@ -27,7 +35,11 @@ export default function Sidebar() {
       {/* Menu items */}
       <ScrollView style={styles.menuContainer}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem}>
+          <TouchableOpacity 
+            key={index} 
+            style={styles.menuItem}
+            onPress={() => handleNavigation(item.screen)}
+          >
             <Text style={styles.menuIcon}>{item.icon}</Text>
             <Text style={styles.menuTitle}>{item.title}</Text>
           </TouchableOpacity>
@@ -54,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2979FF',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60, // Extra padding for status bar
+    paddingTop: 60, 
     paddingBottom: 30,
   },
   userAvatar: {
