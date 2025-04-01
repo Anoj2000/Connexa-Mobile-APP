@@ -9,41 +9,22 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Alert,
-  ScrollView,
-  Dimensions,
-  Platform
+  Alert
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
 import { 
   collection, 
   query, 
   orderBy,
   deleteDoc,
   doc,
-  getDoc,
   onSnapshot
 } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
-import { useRouter } from 'expo-router';
 
-// Responsive Design Constants
-const { width, height } = Dimensions.get('window');
-
-// Color Palette
-const COLORS = {
-  primary: '#007AFF',
-  background: '#F2F2F7',
-  white: '#FFFFFF',
-  gray: '#8E8E93',
-  black: '#000000',
-  red: '#FF3B30',
-  lightGray: '#E5E5E5'
-};
-
-const DashboardLogScreen = () => {
-  const router = useRouter();
+const ReadLogScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [interactionType, setInteractionType] = useState('All');
@@ -52,64 +33,7 @@ const DashboardLogScreen = () => {
   const [deletingId, setDeletingId] = useState(null);
 
   const filterOptions = ['All', 'Today', 'This month'];
-  const interactionTypeOptions = ['All', 'Email', 'Message'];
-
-  // Delete Function with correct ID format
-  const handleDelete = async (logId) => {
-    try {
-      Alert.alert(
-        "Confirm Deletion",
-        "Are you sure you want to delete this log?",
-        [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              setDeletingId(logId);
-              try {
-                // Using the correct document reference format
-                const logRef = doc(FIREBASE_DB, "logs", logId);
-                
-                // Verify document exists
-                const docSnap = await getDoc(logRef);
-                if (!docSnap.exists()) {
-                  Alert.alert("Error", "Log not found or already deleted.");
-                  return;
-                }
-                
-                await deleteDoc(logRef);
-                
-                // Optimistic update
-                setLogs(prevLogs => prevLogs.filter(log => log.id !== logId));
-                
-                Alert.alert(
-                  "Success", 
-                  "Log deleted successfully",
-                  [{ text: "OK" }]
-                );
-              } catch (error) {
-                console.error("Delete error:", error);
-                Alert.alert(
-                  "Error", 
-                  "Failed to delete log. Please try again.",
-                  [{ text: "OK" }]
-                );
-              } finally {
-                setDeletingId(null);
-              }
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error("Alert error:", error);
-      setDeletingId(null);
-    }
-  };
+  const interactionTypeOptions = ['All', 'Email', 'Message', 'Call', 'Meeting', 'Other'];
 
   // Firestore Data Retrieval
   useEffect(() => {
@@ -118,27 +42,35 @@ const DashboardLogScreen = () => {
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const logsData = snapshot.docs.map(doc => ({
-        id: doc.id, // This will use the correct ID format (like "7x2bbzNQ1HSjnoJRj5Lo")
+        firestoreId: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
-        displayDate: doc.data().date || formatDate(doc.data().createdAt?.toDate()),
-        displayTime: doc.data().time || formatTimeFromDate(doc.data().createdAt?.toDate()),
+        displayDate: formatDate(doc.data().createdAt?.toDate()),
+        displayTime: formatTimeFromDate(doc.data().createdAt?.toDate()),
         interactionType: doc.data().interactionType || 'Other'
       }));
+      
       setLogs(logsData);
       setLoading(false);
     }, (error) => {
       console.error("Firestore error:", error);
+      Alert.alert("Error", "Failed to load logs");
       setLoading(false);
-      Alert.alert("Error", "Unable to load logs. Please try again.");
     });
-
+    
     return () => unsubscribe();
   }, []);
 
   // Helper Functions
-  const formatDate = (date) => date?.toLocaleDateString() || 'No date';
-  const formatTimeFromDate = (date) => date?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '';
+  const formatDate = (date) => {
+    if (!date) return 'No date';
+    return date.toLocaleDateString();
+  };
+  
+  const formatTimeFromDate = (date) => {
+    if (!date) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   // Filtering Logic
   const filteredLogs = logs.filter(log => {
@@ -163,354 +95,405 @@ const DashboardLogScreen = () => {
     return searchMatch && typeMatch && dateMatch;
   });
 
+  // Delete Function
+  const handleDelete = async (firestoreId) => {
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to delete this log?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingId(firestoreId);
+            try {
+              await deleteDoc(doc(FIREBASE_DB, "logs", firestoreId));
+              Alert.alert("Success", "Log deleted successfully");
+            } catch (error) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Failed to delete log");
+            } finally {
+              setDeletingId(null);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Navigate to Update Log Screen
+  const navigateToUpdateLog = (logId) => {
+    router.push({
+      pathname: '/interaction-tracking-system/updateLog',
+      params: { id: logId }
+    });
+  };
+
   // Render Log Item
   const renderItem = ({ item }) => (
     <View style={styles.logItem}>
-      <View style={styles.logHeader}>
-        <Text style={styles.contactName} numberOfLines={1}>
-          {item.contactName || 'No Name'}
-        </Text>
-        <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateText}>{item.displayDate}</Text>
-          <Text style={styles.timeText}>{item.displayTime}</Text>
-        </View>
-      </View>
-      
-      <Text style={styles.noteText} numberOfLines={3}>
-        {item.note || 'No notes'}
-      </Text>
-      
-      <View style={styles.logFooter}>
-        <View style={[
-          styles.typeBadge,
-          { 
-            backgroundColor: item.interactionType === 'Email' 
-              ? 'rgba(0, 122, 255, 0.1)' 
-              : 'rgba(142, 142, 147, 0.1)' 
-          }
-        ]}>
-          <Text style={[
-            styles.typeText,
-            { 
-              color: item.interactionType === 'Email' 
-                ? COLORS.primary 
-                : COLORS.gray 
-            }
-          ]}>
-            {item.interactionType}
+      <View style={styles.logInfo}>
+        <View style={styles.logAvatar}>
+          <Text style={styles.avatarText}>
+            {item.contactName ? item.contactName.charAt(0).toUpperCase() : 'L'}
           </Text>
         </View>
-        
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            onPress={() => router.push(`/EditLogScreen?id=${item.id}`)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="create-outline" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={() => handleDelete(item.id)}
-            disabled={deletingId === item.id}
-            style={styles.actionButton}
-          >
-            {deletingId === item.id ? (
-              <ActivityIndicator size="small" color={COLORS.red} />
-            ) : (
-              <Ionicons name="trash-outline" size={20} color={COLORS.red} />
-            )}
-          </TouchableOpacity>
+        <View style={styles.logDetails}>
+          <Text style={styles.contactName}>{item.contactName || 'No Name'}</Text>
+          <Text style={styles.logNote} numberOfLines={1}>
+            {item.note || 'No notes'}
+          </Text>
+          <View style={styles.logMeta}>
+            <Text style={styles.logDate}>{item.displayDate}</Text>
+            <Text style={styles.logTime}>{item.displayTime}</Text>
+            <View style={[
+              styles.logType,
+              { 
+                backgroundColor: 
+                  item.interactionType === 'Email' ? '#E8F5E9' : 
+                  item.interactionType === 'Call' ? '#FFF8E1' :
+                  item.interactionType === 'Meeting' ? '#E1F5FE' :
+                  item.interactionType === 'Message' ? '#E3F2FD' : '#F5F5F5'
+              }
+            ]}>
+              <Text style={[
+                styles.logTypeText,
+                { 
+                  color: 
+                    item.interactionType === 'Email' ? '#4CAF50' : 
+                    item.interactionType === 'Call' ? '#FF9800' :
+                    item.interactionType === 'Meeting' ? '#03A9F4' :
+                    item.interactionType === 'Message' ? '#2196F3' : '#9E9E9E'
+                }
+              ]}>
+                {item.interactionType}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
+      <View style={styles.logActions}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.editButton]}
+          onPress={() => navigateToUpdateLog(item.firestoreId)}
+        >
+          <Ionicons name="create-outline" size={20} color="#4CAF50" />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={() => handleDelete(item.firestoreId)}
+          disabled={deletingId === item.firestoreId}
+        >
+          {deletingId === item.firestoreId ? (
+            <ActivityIndicator size="small" color="#FF5252" />
+          ) : (
+            <Ionicons name="trash-outline" size={20} color="#FF5252" />
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Render Filter Buttons
+  const renderFilterButtons = () => (
+    <View style={styles.filterButtonsContainer}>
+      {filterOptions.map(option => (
+        <TouchableOpacity
+          key={option}
+          style={[
+            styles.filterButton,
+            activeTab === option && styles.activeFilterButton
+          ]}
+          onPress={() => setActiveTab(option)}
+        >
+          <Text style={[
+            styles.filterButtonText,
+            activeTab === option && styles.activeFilterButtonText
+          ]}>
+            {option}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor={COLORS.background} 
-      />
-
+      <StatusBar backgroundColor="#2979FF" barStyle="light-content" />
+      
+      {/* Header Section */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.title}>Interaction Logs</Text>
-        <TouchableOpacity onPress={() => router.push('/NewLogScreen')}>
-          <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} />
+        <Text style={styles.headerTitle}>Interaction Logs</Text>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={() => router.push('/interaction-tracking-system/home')}
+        >
         </TouchableOpacity>
       </View>
-
+      
+      {/* Search Bar Section */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={COLORS.gray} style={styles.searchIcon} />
+        <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search logs..."
+          placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={COLORS.gray}
         />
-        {searchQuery !== '' && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={COLORS.gray} />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity 
+            style={styles.clearButton}
+            onPress={() => setSearchQuery('')}
+          >
+            <Ionicons name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
         )}
       </View>
-
-      <View style={styles.filterRow}>
-        <View style={styles.dropdownContainer}>
+      
+      {/* Filter Section */}
+      <View style={styles.filterSection}>
+        <View style={styles.filterDropdown}>
           <Picker
             selectedValue={interactionType}
             onValueChange={setInteractionType}
-            style={styles.dropdown}
+            style={styles.picker}
+            dropdownIconColor="#666"
           >
             {interactionTypeOptions.map(option => (
               <Picker.Item key={option} label={option} value={option} />
             ))}
           </Picker>
         </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {filterOptions.map(option => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.tabButton,
-                activeTab === option && styles.activeTabButton
-              ]}
-              onPress={() => setActiveTab(option)}
-            >
-              <Text style={[
-                styles.tabText,
-                activeTab === option && styles.activeTabText
-              ]}>
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {renderFilterButtons()}
       </View>
-
+      
+      {/* Log List */}
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#2979FF" />
+          <Text style={styles.emptyText}>Loading logs...</Text>
         </View>
-      ) : (
+      ) : filteredLogs.length > 0 ? (
         <FlatList
           data={filteredLogs}
           renderItem={renderItem}
-          keyExtractor={item => item.id}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={60} color={COLORS.gray} />
-              <Text style={styles.emptyTitle}>No logs found</Text>
-              <Text style={styles.emptyText}>
-                {searchQuery ? 'Try a different search' : 'Add your first log'}
-              </Text>
-            </View>
-          }
+          keyExtractor={item => item.firestoreId}
           contentContainerStyle={styles.listContainer}
+          ListHeaderComponent={<View style={styles.listHeader} />}
+          ListFooterComponent={<View style={styles.listFooter} />}
         />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="document-text-outline" size={60} color="#ccc" />
+          <Text style={styles.emptyText}>
+            {searchQuery ? 'No matching logs found' : 'No logs available'}
+          </Text>
+        </View>
       )}
     </SafeAreaView>
   );
 };
 
-// Styles remain exactly the same as in the previous code
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f8f8',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.04,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.lightGray,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      }
-    })
+    backgroundColor: '#2979FF',
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
   },
-  title: {
-    fontSize: width * 0.045,
-    fontWeight: '600',
-    color: COLORS.black,
+  backButton: {
+    padding: 5,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerButton: {
+    padding: 5,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingHorizontal: width * 0.03,
-    paddingVertical: height * 0.015,
-    margin: width * 0.04,
-    marginBottom: height * 0.02,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      }
-    })
+    backgroundColor: 'white',
+    margin: 10,
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   searchIcon: {
-    marginRight: width * 0.02,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: width * 0.04,
-    color: COLORS.black,
+    height: 50,
+    fontSize: 16,
   },
-  filterRow: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.lightGray,
-    alignItems: 'center',
+  clearButton: {
+    padding: 5,
   },
-  dropdownContainer: {
-    flex: 1,
-    paddingLeft: width * 0.04,
+  filterSection: {
+    paddingHorizontal: 10,
+    marginBottom: 10,
   },
-  dropdown: {
-    height: height * 0.06,
+  filterDropdown: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  picker: {
+    height: 50,
     width: '100%',
   },
-  tabButton: {
-    paddingHorizontal: width * 0.04,
-    paddingVertical: height * 0.015,
-    marginRight: width * 0.02,
+  filterButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+    backgroundColor: '#e0e0e0',
   },
-  activeTabButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
+  activeFilterButton: {
+    backgroundColor: '#2979FF',
   },
-  tabText: {
-    fontSize: width * 0.035,
-    color: COLORS.gray,
-    textAlign: 'center',
+  filterButtonText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  activeFilterButtonText: {
+    color: 'white',
     fontWeight: '500',
-  },
-  activeTabText: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   listContainer: {
-    padding: width * 0.04,
-    paddingBottom: height * 0.06,
+    paddingHorizontal: 10,
+  },
+  listHeader: {
+    height: 5,
+  },
+  listFooter: {
+    height: 20,
   },
   logItem: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: width * 0.04,
-    marginBottom: height * 0.015,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      }
-    })
-  },
-  logHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: height * 0.01,
     alignItems: 'center',
+    backgroundColor: 'white',
+    marginVertical: 5,
+    padding: 15,
+    borderRadius: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1.5,
+  },
+  logInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  logAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#2979FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  logDetails: {
+    flex: 1,
   },
   contactName: {
-    fontSize: width * 0.04,
-    fontWeight: '600',
-    color: COLORS.black,
-    flex: 1,
-    marginRight: width * 0.02,
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 3,
   },
-  dateTimeContainer: {
-    alignItems: 'flex-end',
+  logNote: {
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 5,
   },
-  dateText: {
-    fontSize: width * 0.033,
-    color: COLORS.gray,
-  },
-  timeText: {
-    fontSize: width * 0.03,
-    color: COLORS.gray,
-    marginTop: 2,
-  },
-  noteText: {
-    fontSize: width * 0.035,
-    color: '#3C3C43',
-    marginBottom: height * 0.015,
-    lineHeight: height * 0.025,
-  },
-  logFooter: {
+  logMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  typeBadge: {
-    paddingHorizontal: width * 0.02,
-    paddingVertical: height * 0.005,
-    borderRadius: 6,
+  logDate: {
+    color: '#999',
+    fontSize: 12,
+    marginRight: 10,
   },
-  typeText: {
-    fontSize: width * 0.03,
+  logTime: {
+    color: '#999',
+    fontSize: 12,
+    marginRight: 10,
+  },
+  logType: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  logTypeText: {
+    fontSize: 12,
     fontWeight: '500',
   },
-  actionButtons: {
+  logActions: {
     flexDirection: 'row',
-    alignItems: 'center',
   },
   actionButton: {
-    marginLeft: width * 0.04,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  editButton: {
+    backgroundColor: '#E8F5E9',
+  },
+  deleteButton: {
+    backgroundColor: '#FFEBEE',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: width * 0.1,
-  },
-  emptyTitle: {
-    fontSize: width * 0.045,
-    fontWeight: '600',
-    color: COLORS.black,
-    marginTop: height * 0.02,
-    marginBottom: height * 0.01,
+    padding: 20,
   },
   emptyText: {
-    fontSize: width * 0.035,
-    color: COLORS.gray,
-    textAlign: 'center',
-    marginBottom: height * 0.06,
+    color: '#999',
+    fontSize: 18,
+    marginTop: 10,
   },
 });
 
-export default DashboardLogScreen;
+export default ReadLogScreen;

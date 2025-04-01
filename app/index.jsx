@@ -4,6 +4,7 @@ import "../firebaseConfig";
 import TabNavigation from './(tabs)/_layout';
 
 
+
 export default function App() {
   return (
     <>
