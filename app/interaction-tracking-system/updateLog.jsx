@@ -49,8 +49,8 @@ export default function UpdateLogScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   
-  // Data for pickers
-  const interactionTypes = ['Email', 'Message', 'Call', 'Meeting', 'Other'];
+  // Data for pickers (only Email and Message)
+  const interactionTypes = ['Email', 'Message'];
 
   // Handle back button navigation
   const handleBackPress = () => {

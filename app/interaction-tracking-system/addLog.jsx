@@ -34,8 +34,8 @@ const NewLogScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Interaction types
-  const interactionTypes = ['Message', 'Email', 'Call', 'Meeting'];
+  // Interaction types (only Message and Email)
+  const interactionTypes = ['Message', 'Email'];
 
   // Load contacts from Firestore
   useEffect(() => {

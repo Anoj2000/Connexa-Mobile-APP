@@ -34,7 +34,7 @@ const ReadLogScreen = () => {
   const [deletingId, setDeletingId] = useState(null);
 
   const filterOptions = ['All', 'Today', 'This month'];
-  const interactionTypeOptions = ['All', 'Email', 'Message', 'Call', 'Meeting', 'Other'];
+  const interactionTypeOptions = ['All', 'Email', 'Message'];
 
   // Firestore Data Retrieval
   useEffect(() => {
@@ -48,7 +48,7 @@ const ReadLogScreen = () => {
         createdAt: doc.data().createdAt?.toDate() || new Date(),
         displayDate: formatDate(doc.data().createdAt?.toDate()),
         displayTime: formatTimeFromDate(doc.data().createdAt?.toDate()),
-        interactionType: doc.data().interactionType || 'Other'
+        interactionType: doc.data().interactionType || 'Message'
       }));
       
       setLogs(logsData);
@@ -80,7 +80,7 @@ const ReadLogScreen = () => {
       (log.note || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const typeMatch = interactionType === 'All' || 
-      (log.interactionType || 'Other') === interactionType;
+      (log.interactionType || 'Message') === interactionType;
     
     let dateMatch = true;
     if (activeTab === 'Today') {
@@ -153,8 +153,6 @@ const ReadLogScreen = () => {
               { 
                 backgroundColor: 
                   item.interactionType === 'Email' ? '#E8F5E9' : 
-                  item.interactionType === 'Call' ? '#FFF8E1' :
-                  item.interactionType === 'Meeting' ? '#E1F5FE' :
                   item.interactionType === 'Message' ? '#E3F2FD' : '#F5F5F5'
               }
             ]}>
@@ -163,8 +161,6 @@ const ReadLogScreen = () => {
                 { 
                   color: 
                     item.interactionType === 'Email' ? '#4CAF50' : 
-                    item.interactionType === 'Call' ? '#FF9800' :
-                    item.interactionType === 'Meeting' ? '#03A9F4' :
                     item.interactionType === 'Message' ? '#2196F3' : '#9E9E9E'
                 }
               ]}>
