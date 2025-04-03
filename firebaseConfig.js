@@ -25,4 +25,9 @@ const FIREBASE_DB = getFirestore(FIREBASE_APP);
 // Export only what's being used
 export { FIREBASE_APP, FIREBASE_DB };
 
+console.log('Firebase Services Status:', {
+  app: !!FIREBASE_APP,
+  db: !!FIREBASE_DB,
+});
+
 console.log("Firebase connected successfully");
