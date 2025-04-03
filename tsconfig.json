@@ -3,16 +3,20 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx", 
+
     "paths": {
-      "@/*": ["./*"]
+      "@/": [
+        "./"
+      ]
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.jsx", // Add this line to include JSX files
-    ".expo/types/**/*.ts",
+    "/*.ts",
+    "/*.tsx",
+    "/*.jsx",
+    ".expo/types//*.ts",
     "expo-env.d.ts",
-    "app/index.jsx" // Ensure this JSX file is included
+    "app/index.jsx",
+    ".expo/types/**/*.ts"
   ]
 }
