@@ -23,6 +23,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
+import Home from '../home';
 
 const ReadLogScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -226,14 +227,15 @@ const ReadLogScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push('/home')} 
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Interaction Logs</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => router.push('/interaction-tracking-system/home')}
+          onPress={() => router.back()}
         >
         </TouchableOpacity>
       </View>
