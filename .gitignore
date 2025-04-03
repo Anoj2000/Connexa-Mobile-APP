@@ -41,4 +41,6 @@ yarn-error.*
 
 app-example
 #dataset.csv
-/dataset.csv
+*.csv
+
+
