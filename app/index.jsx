@@ -1,10 +1,7 @@
-import { Text, View, Button } from "react-native";
-import { useRouter } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import "../firebaseConfig";
 import TabNavigation from './(tabs)/_layout';
-
 
 export default function App() {
   return (
@@ -26,4 +23,3 @@ const styles = StyleSheet.create({
 
 
 });
-
