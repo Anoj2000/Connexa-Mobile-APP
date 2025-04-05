@@ -14,7 +14,7 @@ const MyTabs = createBottomTabNavigator();
 const TabNavigation = () => {
   return (
     <MyTabs.Navigator
-      screenOptions={{
+      Options={{
         headerShown: false, 
       }}
     >
@@ -22,6 +22,7 @@ const TabNavigation = () => {
         name="Home"
         component={Home}
         options={{
+          headerShown: false,
           tabBarLabel: ({ color }) => (
             <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
               Home
@@ -37,6 +38,7 @@ const TabNavigation = () => {
         name="Chat"
         component={Chat}
         options={{
+          headerShown: false,
           tabBarLabel: ({ color }) => (
             <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
               Chat
@@ -52,6 +54,7 @@ const TabNavigation = () => {
         name="Notifications"
         component={Notification}
         options={{
+          headerShown: false,
           tabBarLabel: ({ color }) => (
             <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
               Notifications
@@ -67,6 +70,7 @@ const TabNavigation = () => {
         name="Profile"
         component={Profile}
         options={{
+          headerShown: false,
           tabBarLabel: ({ color }) => (
             <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
               Profile

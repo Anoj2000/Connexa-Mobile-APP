@@ -8,7 +8,7 @@ export default function Sidebar() {
   const menuItems = [
 
     { icon: '☎️', title: 'All Contacts', screen: 'contact-management/Allcontact' },
-    { icon: '⭐', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
+    { icon: '🔄', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
     { icon: '👥', title: 'Share & collabarotion', screen: 'Sharing&Collaboration/groups' },
     { icon: '⚙️', title: 'FollowUp', screen: 'FollowUp_Reminder/FollowUp_Dashboard' },
     { icon: '⚙️', title: 'Settings', screen: 'settings' },
@@ -16,9 +16,7 @@ export default function Sidebar() {
   ];
 
   const handleNavigation = (screen) => {
-    // Navigate to the selected screen
     router.push(`/${screen}`);
-    // You might want to close the sidebar here if you have a function for that
   };
 
 
@@ -61,13 +59,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    paddingBottom:70
   },
   header: {
     padding: 20,
     backgroundColor: '#2979FF',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60, 
+    paddingTop: 15, 
     paddingBottom: 30,
   },
   userAvatar: {

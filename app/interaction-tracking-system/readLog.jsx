@@ -23,7 +23,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
-import Home from '../home';
+
 
 const ReadLogScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -223,17 +223,13 @@ const ReadLogScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.push('/home')} 
+          onPress={() => router.back()} 
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Interaction Logs</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.back()}
-        >
-        </TouchableOpacity>
+
       </View>
       
       {/* Search Bar Section */}
@@ -296,6 +292,13 @@ const ReadLogScreen = () => {
           </Text>
         </View>
       )}
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => router.push('/interaction-tracking-system/addLog')}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -310,7 +313,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#2979FF',
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 15,
     paddingHorizontal: 15,
   },
@@ -321,6 +324,8 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
+    paddingHorizontal: 110,
+
   },
   headerButton: {
     padding: 5,
@@ -491,6 +496,22 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 18,
     marginTop: 10,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2979FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });
 
