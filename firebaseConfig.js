@@ -1,4 +1,3 @@
-// Import only what's needed (no auth)
 import { initializeApp } from "firebase/app";
 import { getFirestore } from 'firebase/firestore';
 import {
@@ -9,7 +8,7 @@ import {
   FIREBASE_APP_ID
 } from './config';
 
-// Firebase configuration (removed authDomain)
+// Firebase configuration 
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   projectId: FIREBASE_PROJECT_ID,
