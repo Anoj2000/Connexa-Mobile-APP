@@ -9,7 +9,8 @@ export default function Sidebar() {
 
     { icon: '☎️', title: 'All Contacts', screen: 'contact-management/Allcontact' },
     { icon: '⭐', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
-    { icon: '🕒', title: 'Share collabaration', screen: 'Sharing&Collaboration/groups' },
+    { icon: '👥', title: 'Share & collabarotion', screen: 'Sharing&Collaboration/groups' },
+    { icon: '⚙️', title: 'FollowUp', screen: 'FollowUp_Reminder/FollowUp_Dashboard' },
     { icon: '⚙️', title: 'Settings', screen: 'settings' },
     { icon: '❓', title: 'Help & Feedback', screen: 'help' },
     { icon: '⭐', title: 'FollowUp Reminder', screen: 'FollowUp_Reminder/FollowUp_Page' },

@@ -150,14 +150,14 @@ const EditOneGroup = () => {
 
           {/* Update Button */}
           <TouchableOpacity style={styles.buttonContainer} onPress={handleUpdate}>
-            <LinearGradient colors={["#4A90E2", "#1E3C72"]} style={styles.button}>
+            <LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
               <Text style={styles.buttonText}>Update Group</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           {/* Cancel Button */}
           <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push("/")}>
-            <LinearGradient colors={["#FF6F61", "#D63031"]} style={styles.button}>
+            <LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
               <Text style={styles.buttonText}>Cancel</Text>
             </LinearGradient>
           </TouchableOpacity>

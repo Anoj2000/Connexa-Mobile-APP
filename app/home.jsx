@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginRight: 10,
-    marginTop: 44
+    marginTop:41
   },
   headerTitle: {
     color: 'white',
