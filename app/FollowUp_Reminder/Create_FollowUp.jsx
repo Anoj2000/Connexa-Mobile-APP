@@ -49,7 +49,7 @@ const Create_FollowUp = () => {
       Alert.alert('Success ✅', 'Reminder created successfully!', [
         {
           text: 'OK',
-          onPress: () => router.replace('/FollowUp_Reminder/Reminder_Summary'),
+          onPress: () => router.replace('/FollowUp_Reminder/Reminder_Summery'),
         },
       ]);
     } catch (error) {
