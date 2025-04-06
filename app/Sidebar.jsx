@@ -13,6 +13,7 @@ export default function Sidebar() {
     { icon: '⚙️', title: 'FollowUp', screen: 'FollowUp_Reminder/FollowUp_Dashboard' },
     { icon: '⚙️', title: 'Settings', screen: 'settings' },
     { icon: '❓', title: 'Help & Feedback', screen: 'help' },
+    { icon: '⭐', title: 'FollowUp Reminder', screen: 'FollowUp_Reminder/FollowUp_Page' },
   ];
 
   const handleNavigation = (screen) => {
