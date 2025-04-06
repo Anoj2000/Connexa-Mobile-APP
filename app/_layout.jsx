@@ -7,6 +7,11 @@ export default function Layout() {
       name="(tabs)"
       options={{headerShown: false}}
     />
+
+      <Stack.Screen 
+      name="interaction-tracking-system"
+      options={{headerShown: false}}
+    />
     </Stack>
   );
 }
