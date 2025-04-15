@@ -1,14 +1,21 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import React from 'react';
+import { StyleSheet, Text, View, SafeAreaView, StatusBar } from 'react-native';
+import InteractionReminder from '../interaction-tracking-system/interactionReminder';
 
 const Notification = () => {
   return (
-    <View>
-      <Text>Notification</Text>
-    </View>
-  )
-}
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#2979FF" barStyle="light-content" />
+      <InteractionReminder />
+    </SafeAreaView>
+  );
+};
 
-export default Notification
+export default Notification;
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
+});

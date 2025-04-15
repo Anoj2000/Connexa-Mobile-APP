@@ -131,6 +131,14 @@ const ReadLogScreen = () => {
     });
   };
 
+   // Navigate to Update Log Screen
+   const interactionReminder = (logId) => {
+    router.push({
+      pathname: '/interaction-tracking-system/interactionReminder',
+      params: { id: logId }
+    });
+  };
+
   // Render Log Item
   const renderItem = ({ item }) => (
     <View style={styles.logItem}>
@@ -172,11 +180,19 @@ const ReadLogScreen = () => {
       </View>
       <View style={styles.logActions}>
         <TouchableOpacity 
+          style={[styles.actionButton, styles.notificationButton]}
+          onPress={() => interactionReminder(item.firestoreId)}
+        >
+          <Ionicons name="notifications-outline" size={20} color="#FF9800" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
           onPress={() => navigateToUpdateLog(item.firestoreId)}
         >
           <Ionicons name="create-outline" size={20} color="#4CAF50" />
         </TouchableOpacity>
+
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
           onPress={() => handleDelete(item.firestoreId)}
@@ -479,6 +495,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 5,
+  },
+  notificationButton: {
+    backgroundColor: '#FFF3E0',
   },
   editButton: {
     backgroundColor: '#E8F5E9',

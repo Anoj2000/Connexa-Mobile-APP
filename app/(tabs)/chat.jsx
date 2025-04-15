@@ -1,14 +1,19 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { StyleSheet, View } from 'react-native';
+import React from 'react';
+import ChatList from '../(chats)/chatList';
 
 const Chat = () => {
   return (
-    <View>
-      <Text>Chat</Text>
+    <View style={styles.container}>
+      <ChatList />
     </View>
-  )
-}
+  );
+};
 
-export default Chat
+export default Chat;
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, // This is crucial to make the component take full screen height
+  }
+});
