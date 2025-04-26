@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#999',
-    padding:19,
+    padding:20,
   }
 });
 
