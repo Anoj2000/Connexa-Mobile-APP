@@ -23,7 +23,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
-import Home from '../home';
+
 
 const ReadLogScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -131,6 +131,14 @@ const ReadLogScreen = () => {
     });
   };
 
+   // Navigate to Update Log Screen
+   const interactionReminder = (logId) => {
+    router.push({
+      pathname: '/interaction-tracking-system/interactionReminder',
+      params: { id: logId }
+    });
+  };
+
   // Render Log Item
   const renderItem = ({ item }) => (
     <View style={styles.logItem}>
@@ -172,11 +180,19 @@ const ReadLogScreen = () => {
       </View>
       <View style={styles.logActions}>
         <TouchableOpacity 
+          style={[styles.actionButton, styles.notificationButton]}
+          onPress={() => interactionReminder(item.firestoreId)}
+        >
+          <Ionicons name="notifications-outline" size={20} color="#FF9800" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
           style={[styles.actionButton, styles.editButton]}
           onPress={() => navigateToUpdateLog(item.firestoreId)}
         >
           <Ionicons name="create-outline" size={20} color="#4CAF50" />
         </TouchableOpacity>
+
         <TouchableOpacity 
           style={[styles.actionButton, styles.deleteButton]}
           onPress={() => handleDelete(item.firestoreId)}
@@ -223,17 +239,13 @@ const ReadLogScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.push('/home')} 
+          onPress={() => router.back()} 
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Interaction Logs</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => router.back()}
-        >
-        </TouchableOpacity>
+
       </View>
       
       {/* Search Bar Section */}
@@ -296,6 +308,13 @@ const ReadLogScreen = () => {
           </Text>
         </View>
       )}
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => router.push('/interaction-tracking-system/addLog')}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -310,7 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#2979FF',
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 15,
     paddingHorizontal: 15,
   },
@@ -321,6 +340,8 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
+    paddingHorizontal: 110,
+
   },
   headerButton: {
     padding: 5,
@@ -475,6 +496,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 5,
   },
+  notificationButton: {
+    backgroundColor: '#FFF3E0',
+  },
   editButton: {
     backgroundColor: '#E8F5E9',
   },
@@ -491,6 +515,22 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 18,
     marginTop: 10,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2979FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });
 
