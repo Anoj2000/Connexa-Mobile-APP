@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, StatusBar, Image, Animated, Dimensions, Modal, FlatList, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, StatusBar, Image, Animated, Dimensions, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { FIREBASE_DB } from '../firebaseConfig';
 import Sidebar from './Sidebar'; // Import the Sidebar component
 
-const Home = () => {
+const ContactsScreen = ({ contacts = [] }) => {
   // Initialize navigation
   const navigation = useNavigation();
   
@@ -18,18 +16,6 @@ const Home = () => {
   
   // Add modal state
   const [modalVisible, setModalVisible] = useState(false);
-
-  // Search functionality
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Loading state
-  const [loading, setLoading] = useState(true);
-  
-  // Contacts state
-  const [contacts, setContacts] = useState([]);
-  
-  // Filtered contacts
-  const [filteredContacts, setFilteredContacts] = useState([]);
   
   // Toggle sidebar function
   const toggleSidebar = () => {
@@ -43,105 +29,28 @@ const Home = () => {
     
     setSidebarVisible(!sidebarVisible);
   };
-
-  // Fetch contacts from Firestore with real-time updates
-  const fetchContacts = () => {
-    setLoading(true);
-    try {
-      const contactsCollection = collection(FIREBASE_DB, 'contacts');
-      const contactsQuery = query(contactsCollection, orderBy('createdAt', 'desc'));
-      
-      // Set up real-time listener using onSnapshot
-      const unsubscribe = onSnapshot(contactsQuery, (querySnapshot) => {
-        const contactsData = [];
-        querySnapshot.forEach((doc) => {
-          contactsData.push({
-            id: doc.id,
-            ...doc.data(),
-            // Add formatted date from timestamp if available
-            lastContacted: doc.data().createdAt ? new Date(doc.data().createdAt.toDate()).toLocaleDateString() : 'Never'
-          });
-        });
-        
-        setContacts(contactsData);
-        setFilteredContacts(contactsData);
-        setLoading(false);
-      }, (error) => {
-        console.error('Error fetching contacts:', error);
-        setLoading(false);
-      });
-      
-      // Return the unsubscribe function
-      return unsubscribe;
-    } catch (error) {
-      console.error('Error setting up contacts listener:', error);
-      setLoading(false);
-    }
-  };
-
-  // Handle search input
-  const handleSearch = (text) => {
-    setSearchQuery(text);
-    
-    if (text.trim() === '') {
-      setFilteredContacts(contacts);
-      return;
-    }
-    
-    const filtered = contacts.filter(contact => {
-      return (
-        contact.name.toLowerCase().includes(text.toLowerCase()) ||
-        contact.phone.includes(text) ||
-        (contact.email && contact.email.toLowerCase().includes(text.toLowerCase()))
-      );
-    });
-    
-    setFilteredContacts(filtered);
-  };
-
-  // Set up and clean up real-time listener on component mount
-  useEffect(() => {
-    // Set up the real-time listener
-    const unsubscribe = fetchContacts();
-    
-    // Clean up listener when component unmounts
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, []);
   
-  // Separate favorites from other contacts (assuming contacts with type 'Family' are favorites)
-  const favorites = filteredContacts.filter(contact => contact.type === 'Family');
-  const otherContacts = filteredContacts.filter(contact => contact.type !== 'Family');
+  // Separate favorites from other contacts
+  const favorites = contacts.filter(contact => contact.favorite);
+  const otherContacts = contacts.filter(contact => !contact.favorite);
 
   // Render a contact item
   const renderContactItem = (item) => (
     <View style={styles.contactItem} key={item.id || item.phone}>
       <View style={styles.contactInfo}>
-        {item.profileImage ? (
-          <Image source={{ uri: item.profileImage }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-          </View>
-        )}
+        <View style={styles.avatar} />
         <View>
           <Text style={styles.contactName}>{item.name}</Text>
           <Text style={styles.contactPhone}>{item.phone}</Text>
           {item.lastContacted && (
             <Text style={styles.lastContacted}>Last contacted: {item.lastContacted}</Text>
           )}
-          {item.note && (
-            <Text style={styles.contactNote} numberOfLines={1}>{item.note}</Text>
-          )}
         </View>
       </View>
       <View style={styles.contactActions}>
-        {/* <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}></Text>
-        </TouchableOpacity> */}
+        <TouchableOpacity style={styles.actionButton}>
+          <Text style={styles.actionButtonText}>📞</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Text style={styles.actionButtonText}>✉️</Text>
         </TouchableOpacity>
@@ -182,9 +91,6 @@ const Home = () => {
           <Text style={styles.headerTitle}>Contacts</Text>
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => fetchContacts()}>
-            <Text style={styles.headerButtonText}>🔄</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -194,65 +100,25 @@ const Home = () => {
           style={styles.searchInput}
           placeholder="🔍Search contacts..."
           placeholderTextColor="#999"
-          value={searchQuery}
-          onChangeText={handleSearch}
         />
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2979FF" />
-            <Text style={styles.loadingText}>Loading contacts...</Text>
-          </View>
-        ) : filteredContacts.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No contacts found</Text>
-            {searchQuery.trim() !== '' && (
-              <Text style={styles.emptySubText}>Try a different search term</Text>
-            )}
-            {searchQuery.trim() === '' && (
-              <TouchableOpacity 
-                style={styles.addFirstButton}
-                onPress={() => setModalVisible(true)}
-              >
-                <Text style={styles.addFirstButtonText}>Add your first contact</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <FlatList
-            data={[]} // Empty array as we'll handle sections manually
-            ListHeaderComponent={() => (
-              <>
-                {/* Favorites Section */}
-                {favorites.length > 0 && (
-                  <>
-                    <Text style={styles.sectionTitle}>FAVORITES</Text>
-                    {favorites.map(item => renderContactItem(item))}
-                  </>
-                )}
+        {/* Favorites Section */}
+        {favorites.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>FAVORITES</Text>
+            {favorites.map(item => renderContactItem(item))}
+          </>
+        )}
 
-                {/* All Contacts Section */}
-                {otherContacts.length > 0 && (
-                  <>
-                    <Text style={styles.sectionTitle}>ALL CONTACTS</Text>
-                    {otherContacts.map(item => renderContactItem(item))}
-                  </>
-                )}
-              </>
-            )}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={() => null} // We're using ListHeaderComponent instead
-            refreshing={loading}
-            onRefresh={() => {
-              // This is still useful for manual refreshes (pull-to-refresh)
-              // The real-time listener will handle automatic updates
-              setLoading(true);
-              fetchContacts();
-            }}
-          />
+        {/* All Contacts Section */}
+        {otherContacts.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>ALL CONTACTS</Text>
+            {otherContacts.map(item => renderContactItem(item))}
+          </>
         )}
       </View>
 
@@ -309,7 +175,7 @@ const Home = () => {
                 }}
               >
                 <View style={styles.optionIconContainer}>
-                  <Text style={styles.optionIcon}>👥</Text>
+                  <Text style={styles.optionIcon}>🔄</Text>
                 </View>
                 <Text style={styles.optionText}>ADD CONTACT GROUP</Text>
               </TouchableOpacity>
@@ -328,7 +194,7 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default ContactsScreen;
 
 const { width, height } = Dimensions.get('window');
 
@@ -376,7 +242,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginRight: 10,
-    marginTop:41
+    marginTop:44
   },
   headerTitle: {
     color: 'white',
@@ -386,7 +252,6 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    marginTop: 40
   },
   headerButton: {
     width: 36,
@@ -415,45 +280,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 10,
-  },
-  emptySubText: {
-    fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
-  },
-  addFirstButton: {
-    marginTop: 20,
-    backgroundColor: '#2979FF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  addFirstButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-  },
   sectionTitle: {
     fontSize: 12,
     color: '#888',
@@ -472,21 +298,13 @@ const styles = StyleSheet.create({
   contactInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2979FF',
+    backgroundColor: '#e0e0e0',
     marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   contactName: {
     fontSize: 16,
@@ -495,13 +313,6 @@ const styles = StyleSheet.create({
   contactPhone: {
     color: '#666',
     fontSize: 14,
-  },
-  contactNote: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 2,
-    fontStyle: 'italic',
-    maxWidth: 200,
   },
   lastContacted: {
     color: '#888',

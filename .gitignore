@@ -40,7 +40,3 @@ yarn-error.*
 /config.js
 
 app-example
-#dataset.csv
-*.csv
-
-
