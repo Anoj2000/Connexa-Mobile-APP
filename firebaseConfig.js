@@ -1,4 +1,4 @@
-// app/firebaseConfig.js
+// app/firebaseConfig.js//update
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth"; // ✅ use getAuth instead of initializeAuth
 import { getFirestore } from "firebase/firestore";
