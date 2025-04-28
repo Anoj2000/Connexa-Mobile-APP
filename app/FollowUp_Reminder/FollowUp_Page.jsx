@@ -4,16 +4,11 @@ import {
   Text,
   View,
   ImageBackground,
-  TouchableOpacity,
   Dimensions,
   Animated,
 } from 'react-native';
 import { Link } from 'expo-router';
-import Sidebar from '../Sidebar'; // ✅ Make sure this file exists
-
-import { useRouter } from "expo-router";
-import { StatusBar } from 'expo-status-bar';
-import "../../firebaseConfig"; // ✅ Update the path based on actual location
+import "../../firebaseConfig"; 
 
 const { width } = Dimensions.get('window');
 
@@ -39,15 +34,6 @@ export default function FollowUp_Page() {
       blurRadius={1}
     >
       <View style={styles.overlay}>
-        {/* Menu Icon */}
-        <TouchableOpacity style={styles.menuIcon} onPress={toggleSidebar}>
-          <Text style={{ fontSize: 26, color: '#fff' }}>☰</Text>
-        </TouchableOpacity>
-
-        {/* Sidebar */}
-        <Animated.View style={[styles.sidebarContainer, { left: sidebarX }]}>
-          <Sidebar />
-        </Animated.View>
 
         {/* Main Content */}
         <View style={styles.content}>

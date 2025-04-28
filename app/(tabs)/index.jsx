@@ -1,9 +1,11 @@
+// app/(tabs)/index.jsx
+
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { FIREBASE_AUTH } from '../firebaseConfig';
-import TabNavigation from './(tabs)/_layout';
+import { FIREBASE_AUTH } from '../../firebaseConfig'; 
+import TabNavigation from './_layout';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function App() {
