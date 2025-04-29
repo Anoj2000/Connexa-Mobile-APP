@@ -1,17 +1,14 @@
 import { Stack } from 'expo-router';
+import { UserProvider } from './Auth/AuthCheck'; // adjust path if needed
 
-export default function Layout() {
+export default function RootLayout() {
   return (
-    <Stack >
-      <Stack.Screen 
-      name="(tabs)"
-      options={{headerShown: false}}
-    />
-
-      <Stack.Screen 
-      name="interaction-tracking-system"
-      options={{headerShown: false}}
-    />
-    </Stack>
+    <UserProvider>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="Auth/Login" options={{ headerShown: false }} />
+        <Stack.Screen name="Auth/Signup" options={{ headerShown: false }} />
+      </Stack>
+    </UserProvider>
   );
 }
