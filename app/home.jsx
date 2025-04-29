@@ -139,10 +139,19 @@ const Home = () => {
         </View>
       </View>
       <View style={styles.contactActions}>
-        {/* <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionButtonText}></Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => {
+            // Navigate to Email screen with contact info
+            router.push({
+              pathname: '/Email/Email',
+              params: {
+                email: item.email || '',
+                name: item.name || ''
+              }
+            });
+          }}
+        >
           <Text style={styles.actionButtonText}>✉️</Text>
         </TouchableOpacity>
       </View>
