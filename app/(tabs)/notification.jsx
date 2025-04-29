@@ -176,13 +176,13 @@ export default NotificationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#f8f8f8',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#075E54',
+    backgroundColor: '#2979FF',
     paddingVertical: 15,
     paddingHorizontal: 15,
   },

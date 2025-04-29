@@ -1,5 +1,3 @@
-//update
-import React from 'react';
 import { Text } from 'react-native'; 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Home from '../home';
