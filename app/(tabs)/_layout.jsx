@@ -1,87 +1,109 @@
 import { Text } from 'react-native'; 
+import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Home from '../home';
-import Chat from './chat';
-import Notification from './notification';
-import Profile from './profile';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import AntDesign from '@expo/vector-icons/AntDesign';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Ionicons, AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useColorScheme } from 'react-native';
 
-const MyTabs = createBottomTabNavigator();
+// Import your screen components - ensure these are the correct imports
+import HomeTabScreen from '../home';
+import ChatScreen from './chat';
+import NotificationScreen from './notification';
+import ProfileScreen from './profile';
 
-const TabNavigation = () => {
+const Tab = createBottomTabNavigator();
+
+export default function TabLayout() {
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+  
   return (
-    <MyTabs.Navigator
-      Options={{
-        headerShown: false, 
+    <Tab.Navigator
+      initialRouteName="index"
+      screenOptions={{
+        headerShown: false,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 5,
+          paddingTop: 5,
+          backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff',
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        tabBarActiveTintColor: isDarkMode ? '#a56ba5' : '#6e3b6e',
+        tabBarInactiveTintColor: isDarkMode ? '#aaaaaa' : '#8e8e93',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginBottom: 3,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
       }}
     >
-      <MyTabs.Screen
-        name="Home"
-        component={Home}
+      <Tab.Screen
+        name="index"
+        component={HomeTabScreen}
         options={{
-          headerShown: false,
-          tabBarLabel: ({ color }) => (
-            <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
-              Home
-            </Text>
-          ),
-          tabBarIcon: ({ color, size }) => ( 
-            <Ionicons name="home-outline" size={size} color={color} />
+          title: 'Home',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
-      
-      <MyTabs.Screen
-        name="Chat"
-        component={Chat}
+      <Tab.Screen
+        name="chat"
+        component={ChatScreen}
         options={{
-          headerShown: false,
-          tabBarLabel: ({ color }) => (
-            <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
-              Chat
-            </Text>
+          title: 'Chat',
+          tabBarIcon: ({ color, size, focused }) => (
+            <AntDesign 
+              name={focused ? 'message1' : 'wechat'} 
+              size={size} 
+              color={color} 
+            />
           ),
-          tabBarIcon: ({ color, size }) => ( 
-            <AntDesign name="wechat" size={size} color={color} />
+          tabBarBadge: 3, // Example badge count
+        }}
+      />
+      <Tab.Screen
+        name="notification"
+        component={NotificationScreen}
+        options={{
+          title: 'Alerts',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'notifications' : 'notifications-outline'} 
+              size={size} 
+              color={color} 
+            />
+          ),
+          tabBarBadge: '!', // Custom badge
+        }}
+      />
+      <Tab.Screen
+        name="profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons 
+              name={focused ? 'account' : 'account-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
-
-      <MyTabs.Screen
-        name="Notifications"
-        component={Notification}
-        options={{
-          headerShown: false,
-          tabBarLabel: ({ color }) => (
-            <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
-              Notifications
-            </Text>
-          ),
-          tabBarIcon: ({ color, size }) => ( 
-            <Ionicons name="notifications-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <MyTabs.Screen
-        name="Profile"
-        component={Profile}
-        options={{
-          headerShown: false,
-          tabBarLabel: ({ color }) => (
-            <Text style={{ color, fontSize: 12, marginBottom: 3 }}>
-              Profile
-            </Text>
-          ),
-          tabBarIcon: ({ color, size }) => ( 
-            <MaterialCommunityIcons name="account-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </MyTabs.Navigator>
+    </Tab.Navigator>
   );
-};
-
-export default TabNavigation;
+}
