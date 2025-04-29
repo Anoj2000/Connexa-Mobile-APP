@@ -1,4 +1,4 @@
-// app/Auth/Layout.jsx,//update
+// app/Auth/Layout.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';

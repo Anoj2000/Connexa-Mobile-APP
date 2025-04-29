@@ -1,12 +1,10 @@
 // app/firebaseConfig.js
-
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth"; // ✅ use getAuth instead of initializeAuth
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-
-
 import {
   FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
   FIREBASE_PROJECT_ID,
   FIREBASE_STORAGE_BUCKET,
   FIREBASE_MESSAGING_SENDER_ID,
@@ -16,6 +14,7 @@ import {
 // ✅ Firebase configuration object
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
   projectId: FIREBASE_PROJECT_ID,
   storageBucket: FIREBASE_STORAGE_BUCKET,
   messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
@@ -31,9 +30,23 @@ try {
   console.error("❌ Firebase initialization failed:", error);
 }
 
-// ✅ Initialize Firestore and Auth
-const FIREBASE_DB = getFirestore(FIREBASE_APP);
-const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+// ✅ Initialize Auth (no persistence needed manually)
+let FIREBASE_AUTH;
+try {
+  FIREBASE_AUTH = getAuth(FIREBASE_APP); // ✅ Just getAuth
+  console.log("✅ Firebase Auth initialized.");
+} catch (error) {
+  console.error("❌ Firebase Auth initialization failed:", error);
+}
+
+// ✅ Initialize Firestore
+let FIREBASE_DB;
+try {
+  FIREBASE_DB = getFirestore(FIREBASE_APP);
+  console.log("✅ Firestore initialized.");
+} catch (error) {
+  console.error("❌ Firestore initialization failed:", error);
+}
 
 // ✅ Log Firebase connection status
 console.log("🔎 Firebase Services Status:", {

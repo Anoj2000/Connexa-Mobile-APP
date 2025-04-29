@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { FIREBASE_DB } from '../firebaseConfig';
-import Sidebar from './Sidebar'; // Import the Sidebar component
+import Sidebar from './Sidebar'; // 
 
 const Home = () => {
   // Initialize navigation
@@ -279,6 +279,8 @@ const Home = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>SELECT ACTION</Text>
+            
             <View style={styles.optionsContainer}>
               <TouchableOpacity 
                 style={styles.optionButton}
@@ -292,6 +294,33 @@ const Home = () => {
                   <Text style={styles.optionIcon}>👤</Text>
                 </View>
                 <Text style={styles.optionText}>ADD CONTACT</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  // Navigate to add interaction screen
+                  router.push('/interaction-tracking-system/addLog');
+                }}
+              >
+                <View style={styles.optionIconContainer}>
+                  <Text style={styles.optionIcon}>🔄</Text>
+                </View>
+                <Text style={styles.optionText}>ADD INTERACTION</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.optionButton}
+                onPress={() => {
+                  setModalVisible(false);
+                  // Navigate to add contact group screen
+                  // router.push('/contact-management/addcontactgroup');
+                }}
+              >
+                <View style={styles.optionIconContainer}>
+                  <Text style={styles.optionIcon}>👥</Text>
+                </View>
+                <Text style={styles.optionText}>ADD CONTACT GROUP</Text>
               </TouchableOpacity>
             </View>
             
@@ -345,8 +374,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#2979FF',
+    paddingVertical: 15,
     paddingHorizontal: 15,
-    paddingBottom:20
   },
   headerTitleContainer: {
     flexDirection: 'row',
@@ -360,7 +389,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: 'white',
-    fontSize: 30,
+    fontSize: 20,
     fontWeight: 'bold',
     paddingTop: 40
   },
