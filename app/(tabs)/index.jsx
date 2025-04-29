@@ -1,14 +1,11 @@
-// app/(tabs)/index.jsx
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { FIREBASE_AUTH } from '../../firebaseConfig'; 
-import TabNavigation from './_layout';
+import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function App() {
+export default function IndexScreen() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +17,12 @@ export default function App() {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/home');
+    }
+  }, [loading, user]);
 
   const handleNavigation = (route) => {
     try {
@@ -42,47 +45,40 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return (
-      <>
-        <StatusBar style="auto" />
-        <LinearGradient
-          colors={['#f9f9f9', '#e0e0e0']}
-          style={styles.container}
-        >
-          <View style={styles.content}>
-            <Text style={styles.title}>Welcome to Connexa</Text>
-            <Text style={styles.subtitle}>Connect with your community</Text>
-            
-            <Pressable 
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed
-              ]}
-              onPress={() => handleNavigation('/Auth/Login')}
-            >
-              <Text style={styles.buttonText}>Login</Text>
-            </Pressable>
-            
-            <Pressable 
-              style={({ pressed }) => [
-                styles.signupButton,
-                pressed && styles.buttonPressed
-              ]}
-              onPress={() => handleNavigation('/Auth/SignUp')}
-            >
-              <Text style={styles.signupButtonText}>Create Account</Text>
-            </Pressable>
-          </View>
-        </LinearGradient>
-      </>
-    );
-  }
+  if (user) return null; // avoid flicker while routing to /home
 
   return (
     <>
       <StatusBar style="auto" />
-      <TabNavigation />
+      <LinearGradient
+        colors={['#f9f9f9', '#e0e0e0']}
+        style={styles.container}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome to Connexa</Text>
+          <Text style={styles.subtitle}>Connect with your community</Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed
+            ]}
+            onPress={() => handleNavigation('/Auth/Login')}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.signupButton,
+              pressed && styles.buttonPressed
+            ]}
+            onPress={() => handleNavigation('/Auth/SignUp')}
+          >
+            <Text style={styles.signupButtonText}>Create Account</Text>
+          </Pressable>
+        </View>
+      </LinearGradient>
     </>
   );
 }
