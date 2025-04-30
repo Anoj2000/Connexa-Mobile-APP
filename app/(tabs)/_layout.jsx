@@ -78,7 +78,7 @@ export default function TabLayout() {
         name="notification"
         component={NotificationScreen}
         options={{
-          title: 'Alerts',
+          title: 'Notification',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons 
               name={focused ? 'notifications' : 'notifications-outline'} 
