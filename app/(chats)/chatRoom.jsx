@@ -1,159 +1,269 @@
-import React, { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   View,
+  Image,
   SafeAreaView,
   TextInput,
   TouchableOpacity,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  FlatList,
+  StatusBar
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { FIREBASE_AUTH, FIREBASE_RTDB } from '../../firebaseConfig';
+import {
+  ref,
+  push,
+  set,
+  onValue,
+  query,
+  orderByChild,
+  get,
+} from 'firebase/database';
 
 const ChatRoom = () => {
-  // Get route params
-  const params = useLocalSearchParams();
-  const { name, avatar } = params;
-  
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      text: 'How are You ?',
-      time: '10:00',
-      sent: true,
-      emoji: '🤠'
-    },
-    {
-      id: '2',
-      text: 'I am fine',
-      time: '12:35',
-      sent: false,
-      emoji: '😊'
-    }
-  ]);
+  const { userId, name, avatar } = useLocalSearchParams();
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const flatListRef = useRef(null);
 
-  const sendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        text: message,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        sent: true
+  // Get the current user
+  useEffect(() => {
+    const auth = FIREBASE_AUTH;
+    if (auth.currentUser) {
+      setCurrentUser(auth.currentUser);
+      
+      // Fetch current user details for display
+      const fetchUserDetails = async () => {
+        try {
+          const userRef = ref(FIREBASE_RTDB, `users/${auth.currentUser.uid}`);
+          const snapshot = await get(userRef);
+          
+          if (snapshot.exists()) {
+            setCurrentUser({
+              ...auth.currentUser,
+              ...snapshot.val()
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user details:', error);
+        }
       };
-      setMessages([...messages, newMessage]);
-      setMessage('');
+      
+      fetchUserDetails();
+    }
+  }, []);
+
+  // Load chat messages
+  useEffect(() => {
+    if (!userId || !currentUser) return;
+
+    // Create a unique chat ID based on the two user IDs
+    const chatId = [currentUser.uid, userId].sort().join('_');
+    
+    console.log(`Subscribing to messages for chat: ${chatId}`);
+    
+    // Reference to the messages in this chat
+    const messagesRef = ref(FIREBASE_RTDB, `chats/${chatId}/messages`);
+    
+    // Query to order messages by timestamp
+    const messagesQuery = query(messagesRef, orderByChild('createdAt'));
+    
+    // Set up real-time listener
+    const unsubscribe = onValue(messagesQuery, (snapshot) => {
+      const messagesData = [];
+      
+      snapshot.forEach((childSnapshot) => {
+        const message = childSnapshot.val();
+        messagesData.push({
+          id: childSnapshot.key,
+          ...message,
+          // Convert timestamp to Date object
+          createdAt: new Date(message.createdAt)
+        });
+      });
+      
+      console.log(`Received ${messagesData.length} messages`);
+      setMessages(messagesData);
+      setLoading(false);
+      
+      // Scroll to bottom when messages load
+      if (messagesData.length > 0 && flatListRef.current) {
+        setTimeout(() => {
+          flatListRef.current.scrollToEnd({ animated: true });
+        }, 200);
+      }
+    }, (error) => {
+      console.error('Error loading messages:', error);
+      setLoading(false);
+    });
+    
+    // Clean up listener
+    return () => unsubscribe();
+  }, [userId, currentUser]);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !userId || !currentUser) return;
+    
+    try {
+      // Create a unique chat ID based on the two user IDs
+      const chatId = [currentUser.uid, userId].sort().join('_');
+      
+      // Reference to the messages in this chat
+      const messagesRef = ref(FIREBASE_RTDB, `chats/${chatId}/messages`);
+      
+      // Generate a new message ID
+      const newMessageRef = push(messagesRef);
+      
+      // Message data
+      const messageData = {
+        text: inputMessage.trim(),
+        createdAt: Date.now(),  // Use timestamp for Realtime DB
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || currentUser.fullName || 'User',
+        receiverId: userId
+      };
+      
+      // Save the message
+      await set(newMessageRef, messageData);
+      
+      // Clear input
+      setInputMessage('');
+      
+      // Update last message for both users if needed
+      /* 
+      This would be implemented if you want to show last message previews in the ChatList
+      const lastMessageData = {
+        lastMessage: inputMessage.trim(),
+        lastMessageTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      };
+      await set(ref(FIREBASE_RTDB, `users/${userId}/lastMessage`), lastMessageData);
+      await set(ref(FIREBASE_RTDB, `users/${currentUser.uid}/lastMessage`), lastMessageData);
+      */
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message');
     }
   };
 
-  const goBack = () => {
+  const handleGoBack = () => {
     router.back();
+  };
+  
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
+  // Render each message
+  const renderMessage = ({ item }) => {
+    const isCurrentUser = item.senderId === currentUser?.uid;
+    
+    return (
+      <View style={[
+        styles.messageContainer,
+        isCurrentUser ? styles.sentMessageContainer : styles.receivedMessageContainer
+      ]}>
+        {!isCurrentUser && (
+          <Image 
+            source={{ uri: avatar }} 
+            style={styles.messageAvatar} 
+            defaultSource={require('../../assets/images/user1.jpg')}
+          />
+        )}
+        <View style={[
+          styles.messageBubble,
+          isCurrentUser ? styles.sentMessageBubble : styles.receivedMessageBubble
+        ]}>
+          <Text style={styles.messageText}>{item.text}</Text>
+        </View>
+        <Text style={[
+          styles.messageTime,
+          isCurrentUser ? styles.sentMessageTime : styles.receivedMessageTime
+        ]}>
+          {formatTime(item.createdAt)}
+        </Text>
+        {isCurrentUser && (
+          <Image 
+            source={{ uri: currentUser?.profilePhotoUrl }} 
+            style={styles.messageAvatar}
+            defaultSource={require('../../assets/images/user1.jpg')}
+          />
+        )}
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Chat Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={goBack}>
-          <Ionicons name="chevron-back" size={24} color="#007AFF" />
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={28} color="#007AFF" />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.profileSection}>
-          <Image
-            source={{ uri: avatar || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
+        <View style={styles.headerCenter}>
+          <Image 
+            source={{ uri: avatar }} 
+            style={styles.headerAvatar}
+            defaultSource={require('../../assets/images/user1.jpg')}
           />
-          <Text style={styles.username}>{name || 'User'}</Text>
-          <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-        </TouchableOpacity>
+          <Text style={styles.headerName}>{name}</Text>
+        </View>
         
-        <TouchableOpacity style={styles.videoButton}>
-          <Ionicons name="videocam" size={24} color="#007AFF" />
+        <TouchableOpacity style={styles.videoCallButton}>
+          <Ionicons name="videocam" size={22} color="#007AFF" />
         </TouchableOpacity>
       </View>
       
-      <View style={styles.divider} />
+      {/* Messages List */}
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.messagesList}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+      />
       
-      {/* Messages Area */}
-      <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
-        {messages.map(msg => (
-          <View key={msg.id} style={[
-            styles.messageWrapper,
-            msg.sent ? styles.sentWrapper : styles.receivedWrapper
-          ]}>
-            {!msg.sent && (
-              <Image
-                source={{ uri: avatar || 'https://via.placeholder.com/40' }}
-                style={styles.messageAvatar}
-              />
-            )}
-            
-            <View style={[
-              styles.message,
-              msg.sent ? styles.sentMessage : styles.receivedMessage
-            ]}>
-              <Text style={[
-                styles.messageText,
-                msg.sent ? styles.sentMessageText : styles.receivedMessageText
-              ]}>
-                {msg.text}
-              </Text>
-            </View>
-            
-            {msg.sent && msg.emoji && (
-              <Text style={styles.emoji}>{msg.emoji}</Text>
-            )}
-            
-            <Text style={[
-              styles.timestamp,
-              msg.sent ? styles.sentTimestamp : styles.receivedTimestamp
-            ]}>
-              {msg.time}
-            </Text>
-            
-            {!msg.sent && msg.emoji && (
-              <Text style={styles.emoji}>{msg.emoji}</Text>
-            )}
-          </View>
-        ))}
-      </ScrollView>
-      
-      {/* Input Area */}
+      {/* Message Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         style={styles.inputContainer}
       >
-        <TouchableOpacity style={styles.plusButton}>
-          <Ionicons name="add" size={24} color="#8E8E93" />
+        <TouchableOpacity style={styles.attachButton}>
+          <Ionicons name="add-circle-outline" size={24} color="#888" />
         </TouchableOpacity>
         
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Text Message + RCS"
-            value={message}
-            onChangeText={setMessage}
-          />
-          <TouchableOpacity style={styles.micButton}>
-            <Ionicons name="mic" size={20} color="#8E8E93" />
+        <TextInput
+          style={styles.input}
+          placeholder="Text Message + RCS"
+          placeholderTextColor="#999"
+          value={inputMessage}
+          onChangeText={setInputMessage}
+          multiline={true}
+          maxHeight={100}
+        />
+        
+        <TouchableOpacity style={styles.micButton}>
+          <Ionicons name="mic-outline" size={24} color="#888" />
+        </TouchableOpacity>
+        
+        {inputMessage.trim().length > 0 ? (
+          <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
+            <Ionicons name="send" size={24} color="#007AFF" />
           </TouchableOpacity>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.sendButton} 
-          onPress={sendMessage}
-          disabled={!message.trim()}
-        >
-          <Ionicons 
-            name="send" 
-            size={24} 
-            color={message.trim() ? "#007AFF" : "#C7C7CC"} 
-          />
-        </TouchableOpacity>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -168,128 +278,114 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8f8f8',
   },
   backButton: {
-    padding: 4,
+    padding: 5,
   },
-  profileSection: {
+  headerCenter: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E5E5EA',
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e0e0e0',
   },
-  username: {
+  headerName: {
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 10,
-    marginRight: 4,
   },
-  videoButton: {
-    padding: 4,
+  videoCallButton: {
+    padding: 5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E5EA',
+  messagesList: {
+    padding: 15,
+    paddingBottom: 30,
   },
-  messagesContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  messagesContent: {
-    padding: 16,
-  },
-  messageWrapper: {
-    marginBottom: 16,
-    maxWidth: '80%',
+  messageContainer: {
     flexDirection: 'row',
+    marginBottom: 15,
     alignItems: 'flex-end',
   },
-  sentWrapper: {
-    alignSelf: 'flex-end',
+  sentMessageContainer: {
+    justifyContent: 'flex-end',
   },
-  receivedWrapper: {
-    alignSelf: 'flex-start',
-  },
-  message: {
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 4,
-  },
-  sentMessage: {
-    backgroundColor: '#34D399', // Green color as in image
-    borderBottomRightRadius: 4,
-  },
-  receivedMessage: {
-    backgroundColor: '#E5E5EA',
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  sentMessageText: {
-    color: '#000',
-    fontWeight: '500',
-  },
-  receivedMessageText: {
-    color: '#000',
+  receivedMessageContainer: {
+    justifyContent: 'flex-start',
   },
   messageAvatar: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    marginRight: 8,
+    marginHorizontal: 5,
   },
-  timestamp: {
+  messageBubble: {
+    maxWidth: '70%',
+    padding: 12,
+    borderRadius: 18,
+  },
+  sentMessageBubble: {
+    backgroundColor: '#4CD964', // Green color for sent messages
+    borderBottomRightRadius: 4,
+  },
+  receivedMessageBubble: {
+    backgroundColor: '#F2F2F2', // Light gray for received messages
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  messageTime: {
     fontSize: 12,
     color: '#8E8E93',
-    marginHorizontal: 4,
-  },
-  sentTimestamp: {
+    marginHorizontal: 5,
     alignSelf: 'flex-end',
   },
-  receivedTimestamp: {
-    alignSelf: 'flex-start',
+  sentMessageTime: {
+    textAlign: 'right',
   },
-  emoji: {
-    fontSize: 20,
+  receivedMessageTime: {
+    textAlign: 'left',
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 8,
     alignItems: 'center',
+    padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: '#f0f0f0',
+    backgroundColor: '#f8f8f8',
   },
-  plusButton: {
+  attachButton: {
     padding: 8,
-  },
-  inputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignItems: 'center',
-    marginHorizontal: 8,
+    marginRight: 5,
   },
   input: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    maxHeight: 100,
     fontSize: 16,
-    paddingVertical: 4,
   },
   micButton: {
-    padding: 4,
+    padding: 8,
+    marginLeft: 5,
   },
   sendButton: {
     padding: 8,
+    marginLeft: 5,
   },
 });

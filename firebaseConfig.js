@@ -2,13 +2,15 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth"; // ✅ use getAuth instead of initializeAuth
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database"; // ✅ import for Realtime Database
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
   FIREBASE_PROJECT_ID,
   FIREBASE_STORAGE_BUCKET,
   FIREBASE_MESSAGING_SENDER_ID,
-  FIREBASE_APP_ID
+  FIREBASE_APP_ID,
+  FIREBASE_DATABASE_URL, // ✅ Add this to your config.js
 } from "./config";
 
 // ✅ Firebase configuration object
@@ -19,6 +21,7 @@ const firebaseConfig = {
   storageBucket: FIREBASE_STORAGE_BUCKET,
   messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
   appId: FIREBASE_APP_ID,
+  databaseURL: FIREBASE_DATABASE_URL, // ✅ Required for Realtime Database
 };
 
 // ✅ Initialize Firebase App (safe check for multi-inits)
@@ -48,15 +51,25 @@ try {
   console.error("❌ Firestore initialization failed:", error);
 }
 
+// ✅ Initialize Realtime Database
+let FIREBASE_RTDB;
+try {
+  FIREBASE_RTDB = getDatabase(FIREBASE_APP);
+  console.log("✅ Realtime Database initialized.");
+} catch (error) {
+  console.error("❌ Realtime Database initialization failed:", error);
+}
+
 // ✅ Log Firebase connection status
 console.log("🔎 Firebase Services Status:", {
   appInitialized: !!FIREBASE_APP,
   firestoreReady: !!FIREBASE_DB,
+  realtimeDBReady: !!FIREBASE_RTDB,
   authReady: !!FIREBASE_AUTH,
 });
 
 console.log("🚀 Firebase connected successfully");
 
 // ✅ Export instances
-export { FIREBASE_APP, FIREBASE_DB, FIREBASE_AUTH };
+export { FIREBASE_APP, FIREBASE_DB, FIREBASE_AUTH, FIREBASE_RTDB };
 export default FIREBASE_APP;

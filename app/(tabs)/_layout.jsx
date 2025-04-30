@@ -1,4 +1,5 @@
-import React from 'react';
+import { Text } from 'react-native'; 
+import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
