@@ -8,7 +8,7 @@
 * **Real-time Messaging and Notifications**
 * **Interactive User Interface with Dynamic Components**
 * **Integration with External APIs for Enhanced Functionality**
-* **Secure Data Handling with JWT Authentication**
+* **Secure Data Handling with Firebase Authentication**
 
 ## 🛠️ Tech Stack
 

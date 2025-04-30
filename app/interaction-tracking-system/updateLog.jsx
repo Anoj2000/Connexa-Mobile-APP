@@ -312,15 +312,7 @@ export default function UpdateLogScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.innerContainer}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-              <Ionicons name="chevron-back" size={24} color="#007AFF" />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Log</Text>
-          </View>
-          
+        <View style={styles.innerContainer}>     
           <View style={styles.formContainer}>
             {/* Contact Name (read-only) */}
             <Text style={styles.label}>Contact Name</Text>

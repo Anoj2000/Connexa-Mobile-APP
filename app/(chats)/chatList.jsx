@@ -12,13 +12,10 @@ const ChatList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        console.log('Starting to fetch users');
         setLoading(true);
-        
         const auth = FIREBASE_AUTH;
         
         if (!auth) {
-          console.error('Firebase Auth is not initialized');
           setError('Authentication service is not available');
           setLoading(false);
           return;
@@ -27,13 +24,10 @@ const ChatList = () => {
         const firebaseUser = auth.currentUser;
         
         if (!firebaseUser) {
-          console.log('No current user found, need to log in first');
           setError('Please log in to view chat list');
           setLoading(false);
           return;
         }
-        
-        console.log('Current user from Firebase Auth:', firebaseUser.uid);
         
         const currentUserId = firebaseUser.uid;
         
@@ -43,20 +37,14 @@ const ChatList = () => {
 
         const usersCollection = collection(FIREBASE_DB, 'users');
         const q = query(usersCollection);
-        console.log('Executing Firestore query...');
-        
         const usersSnapshot = await getDocs(q);
         
-        console.log('Users snapshot size:', usersSnapshot.size);
-        
         if (usersSnapshot.empty) {
-          console.log('No users found in database');
           setUsers([]);
           setLoading(false);
           return;
         }
         
-        const usersList = [];
         const userPromises = [];
         
         usersSnapshot.forEach((docSnapshot) => {
@@ -73,6 +61,7 @@ const ChatList = () => {
                 let lastMessageTime = '';
                 let timestamp = 0;
                 let isCurrentUserLastSender = false;
+                let senderName = '';
                 
                 if (chatDoc.exists()) {
                   const chatData = chatDoc.data();
@@ -80,10 +69,10 @@ const ChatList = () => {
                   if (chatData.lastMessage) {
                     lastMessage = chatData.lastMessage.text || '';
                     timestamp = chatData.lastMessage.timestamp || 0;
+                    isCurrentUserLastSender = chatData.lastMessage.senderId === currentUserId;
                     
-                    if (chatData.lastMessage.senderId) {
-                      isCurrentUserLastSender = chatData.lastMessage.senderId === currentUserId;
-                    }
+                    // Set sender name
+                    senderName = isCurrentUserLastSender ? 'You' : userData.fullName?.split(' ')[0] || 'User';
                     
                     if (timestamp) {
                       lastMessageTime = formatTime(new Date(timestamp));
@@ -96,10 +85,11 @@ const ChatList = () => {
                   ...userData,
                   fullName: userData.fullName || userData.displayName || 'User',
                   profilePhotoUrl: userData.profilePhotoUrl || 'https://via.placeholder.com/50',
-                  lastMessage: lastMessage,
-                  timestamp: timestamp,
+                  lastMessage,
+                  timestamp,
                   time: lastMessageTime,
-                  isCurrentUserLastSender
+                  isCurrentUserLastSender,
+                  senderName
                 };
               } catch (error) {
                 console.error(`Error fetching chat data for user ${docSnapshot.id}:`, error);
@@ -111,7 +101,8 @@ const ChatList = () => {
                   lastMessage: '',
                   timestamp: 0,
                   time: '',
-                  isCurrentUserLastSender: false
+                  isCurrentUserLastSender: false,
+                  senderName: ''
                 };
               }
             };
@@ -122,12 +113,9 @@ const ChatList = () => {
         
         const usersWithChatData = await Promise.all(userPromises);
         usersWithChatData.sort((a, b) => b.timestamp - a.timestamp);
-        
-        console.log('Final users list length:', usersWithChatData.length);
         setUsers(usersWithChatData);
         
       } catch (error) {
-        console.error('Error fetching users:', error);
         setError('Failed to load users: ' + error.message);
       } finally {
         setLoading(false);
@@ -135,11 +123,6 @@ const ChatList = () => {
     };
 
     fetchUsers();
-    console.log('ChatList component mounted');
-    
-    return () => {
-      console.log('ChatList component unmounted');
-    };
   }, []); 
 
   const formatTime = (date) => {
@@ -167,7 +150,6 @@ const ChatList = () => {
   };
 
   const navigateToChatRoom = (item) => {
-    console.log('Navigating to chat with user:', item.id);
     router.push({
       pathname: '/chatRoom',
       params: {
@@ -176,18 +158,6 @@ const ChatList = () => {
         avatar: item.profilePhotoUrl || 'https://via.placeholder.com/50'
       }
     });
-  };
-  
-  const formatLastMessage = (item) => {
-    if (!item.lastMessage) {
-      return '';
-    }
-    
-    if (item.isCurrentUserLastSender) {
-      return `You: ${item.lastMessage}`;
-    } else {
-      return item.lastMessage;
-    }
   };
   
   const renderChatItem = ({ item }) => {
@@ -208,12 +178,11 @@ const ChatList = () => {
               <Text style={styles.time}>{item.time}</Text>
             ) : null}
           </View>
-          <Text 
-            style={styles.lastMessage} 
-            numberOfLines={1}
-          >
-            {formatLastMessage(item)}
-          </Text>
+          {item.lastMessage ? (
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.senderName}: {item.lastMessage}
+            </Text>
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -258,9 +227,6 @@ const ChatList = () => {
         <StatusBar barStyle="light-content" />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Chats</Text>
-          <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>New Chat</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No conversations yet</Text>
@@ -340,6 +306,7 @@ const styles = StyleSheet.create({
   lastMessage: {
     fontSize: 14,
     color: '#666',
+    marginTop: 2,
   },
   loadingContainer: {
     flex: 1,

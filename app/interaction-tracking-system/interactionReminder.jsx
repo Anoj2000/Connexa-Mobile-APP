@@ -341,17 +341,6 @@ const InteractionReminder = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()} 
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Interaction Reminders</Text>
-      </View>
-
       <ScrollView style={styles.scrollView}>
         {/* Select Log Section */}
         <View style={styles.section}>
