@@ -14,7 +14,7 @@ const Chat = () => {
   );
 };
 
-export default Chat; // Export with uppercase name
+export default Chat; 
 
 const styles = StyleSheet.create({
   container: {

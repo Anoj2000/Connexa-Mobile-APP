@@ -81,11 +81,15 @@ const ChatRoom = () => {
       
       snapshot.forEach((childSnapshot) => {
         const message = childSnapshot.val();
+        // Ensure timestamp is a valid number before conversion
+        const timestamp = typeof message.createdAt === 'number' ? message.createdAt : Date.now();
+        
         messagesData.push({
           id: childSnapshot.key,
           ...message,
-          // Convert timestamp to Date object
-          createdAt: new Date(message.createdAt)
+          // Store both timestamp and Date object for reliable rendering
+          timestamp: timestamp,
+          createdAt: new Date(timestamp)
         });
       });
       
@@ -96,8 +100,8 @@ const ChatRoom = () => {
       // Scroll to bottom when messages load
       if (messagesData.length > 0 && flatListRef.current) {
         setTimeout(() => {
-          flatListRef.current.scrollToEnd({ animated: true });
-        }, 200);
+          flatListRef.current.scrollToEnd({ animated: false });
+        }, 100);
       }
     }, (error) => {
       console.error('Error loading messages:', error);
@@ -121,10 +125,13 @@ const ChatRoom = () => {
       // Generate a new message ID
       const newMessageRef = push(messagesRef);
       
+      // Current timestamp
+      const timestamp = Date.now();
+      
       // Message data
       const messageData = {
         text: inputMessage.trim(),
-        createdAt: Date.now(),  // Use timestamp for Realtime DB
+        createdAt: timestamp,  // Use timestamp for Realtime DB
         senderId: currentUser.uid,
         senderName: currentUser.displayName || currentUser.fullName || 'User',
         receiverId: userId
@@ -136,16 +143,22 @@ const ChatRoom = () => {
       // Clear input
       setInputMessage('');
       
-      // Update last message for both users if needed
-      /* 
-      This would be implemented if you want to show last message previews in the ChatList
+      // Update last message for both users for chat list preview
       const lastMessageData = {
-        lastMessage: inputMessage.trim(),
-        lastMessageTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        text: inputMessage.trim(),
+        timestamp: timestamp,
+        senderId: currentUser.uid
       };
-      await set(ref(FIREBASE_RTDB, `users/${userId}/lastMessage`), lastMessageData);
-      await set(ref(FIREBASE_RTDB, `users/${currentUser.uid}/lastMessage`), lastMessageData);
-      */
+      
+      // Update chat metadata
+      await set(ref(FIREBASE_RTDB, `chats/${chatId}/metadata`), {
+        lastMessage: lastMessageData,
+        updatedAt: timestamp,
+        participants: {
+          [currentUser.uid]: true,
+          [userId]: true
+        }
+      });
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -158,12 +171,21 @@ const ChatRoom = () => {
   };
   
   const formatTime = (date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '';
+    }
     return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
   // Render each message
-  const renderMessage = ({ item }) => {
+  const renderMessage = ({ item, index }) => {
     const isCurrentUser = item.senderId === currentUser?.uid;
+    
+    // Skip rendering if invalid data
+    if (!item || !item.text) return null;
+    
+    // Get message time
+    const messageTime = formatTime(item.createdAt);
     
     return (
       <View style={[
@@ -172,7 +194,7 @@ const ChatRoom = () => {
       ]}>
         {!isCurrentUser && (
           <Image 
-            source={{ uri: avatar }} 
+            source={{ uri: avatar || undefined }} 
             style={styles.messageAvatar} 
             defaultSource={require('../../assets/images/user1.jpg')}
           />
@@ -187,11 +209,11 @@ const ChatRoom = () => {
           styles.messageTime,
           isCurrentUser ? styles.sentMessageTime : styles.receivedMessageTime
         ]}>
-          {formatTime(item.createdAt)}
+          {messageTime}
         </Text>
         {isCurrentUser && (
           <Image 
-            source={{ uri: currentUser?.profilePhotoUrl }} 
+            source={{ uri: currentUser?.profilePhotoUrl || undefined }} 
             style={styles.messageAvatar}
             defaultSource={require('../../assets/images/user1.jpg')}
           />
@@ -212,28 +234,31 @@ const ChatRoom = () => {
         
         <View style={styles.headerCenter}>
           <Image 
-            source={{ uri: avatar }} 
+            source={{ uri: avatar || undefined }} 
             style={styles.headerAvatar}
             defaultSource={require('../../assets/images/user1.jpg')}
           />
           <Text style={styles.headerName}>{name}</Text>
         </View>
-        
-        <TouchableOpacity style={styles.videoCallButton}>
-          <Ionicons name="videocam" size={22} color="#007AFF" />
-        </TouchableOpacity>
       </View>
       
       {/* Messages List */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text>Loading messages...</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id || `msg-${item.timestamp}-${Math.random()}`}
+          contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          extraData={messages.length} // Force re-render when new messages arrive
+        />
+      )}
       
       {/* Message Input */}
       <KeyboardAvoidingView
@@ -241,9 +266,6 @@ const ChatRoom = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         style={styles.inputContainer}
       >
-        <TouchableOpacity style={styles.attachButton}>
-          <Ionicons name="add-circle-outline" size={24} color="#888" />
-        </TouchableOpacity>
         
         <TextInput
           style={styles.input}
@@ -254,10 +276,6 @@ const ChatRoom = () => {
           multiline={true}
           maxHeight={100}
         />
-        
-        <TouchableOpacity style={styles.micButton}>
-          <Ionicons name="mic-outline" size={24} color="#888" />
-        </TouchableOpacity>
         
         {inputMessage.trim().length > 0 ? (
           <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
@@ -306,6 +324,11 @@ const styles = StyleSheet.create({
   },
   videoCallButton: {
     padding: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messagesList: {
     padding: 15,

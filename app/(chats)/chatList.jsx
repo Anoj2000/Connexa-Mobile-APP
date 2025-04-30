@@ -2,15 +2,12 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, Image, SafeAreaView, StatusBar, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../firebaseConfig';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
-// Don't import useUser if it's causing issues
-// import { useUser } from '../Auth/Layout';
+import { collection, getDocs, query, where, orderBy, limit, getDoc, doc } from 'firebase/firestore';
 
 const ChatList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Don't use the context hook since it's causing errors
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -18,10 +15,8 @@ const ChatList = () => {
         console.log('Starting to fetch users');
         setLoading(true);
         
-        // Get Firebase Auth instance
         const auth = FIREBASE_AUTH;
         
-        // Check if auth is properly initialized
         if (!auth) {
           console.error('Firebase Auth is not initialized');
           setError('Authentication service is not available');
@@ -29,7 +24,6 @@ const ChatList = () => {
           return;
         }
         
-        // Get the current user directly from Firebase Auth
         const firebaseUser = auth.currentUser;
         
         if (!firebaseUser) {
@@ -41,14 +35,12 @@ const ChatList = () => {
         
         console.log('Current user from Firebase Auth:', firebaseUser.uid);
         
-        // Get the current user ID
         const currentUserId = firebaseUser.uid;
         
         if (!currentUserId) {
           throw new Error('Could not determine current user ID');
         }
 
-        // Get all users from Firestore
         const usersCollection = collection(FIREBASE_DB, 'users');
         const q = query(usersCollection);
         console.log('Executing Firestore query...');
@@ -64,28 +56,75 @@ const ChatList = () => {
           return;
         }
         
-        // Filter and map users
         const usersList = [];
+        const userPromises = [];
         
-        usersSnapshot.forEach((doc) => {
-          const userData = doc.data();
-          // Skip the current user
-          if (doc.id !== currentUserId) {
-            console.log('Adding user to list:', doc.id, userData.fullName || userData.displayName);
-            usersList.push({
-              id: doc.id,
-              ...userData,
-              // Provide default values for required fields
-              fullName: userData.fullName || userData.displayName || 'User',
-              profilePhotoUrl: userData.profilePhotoUrl || 'https://via.placeholder.com/50',
-              lastMessage: userData.lastMessage || 'Say Hi 👋',
-              time: userData.lastMessageTime || 'Just now'
-            });
+        usersSnapshot.forEach((docSnapshot) => {
+          if (docSnapshot.id !== currentUserId) {
+            const userData = docSnapshot.data();
+            
+            const userPromise = async () => {
+              try {
+                const chatId = [currentUserId, docSnapshot.id].sort().join('_');
+                const chatDocRef = doc(FIREBASE_DB, 'chats', chatId);
+                const chatDoc = await getDoc(chatDocRef);
+                
+                let lastMessage = '';
+                let lastMessageTime = '';
+                let timestamp = 0;
+                let isCurrentUserLastSender = false;
+                
+                if (chatDoc.exists()) {
+                  const chatData = chatDoc.data();
+                  
+                  if (chatData.lastMessage) {
+                    lastMessage = chatData.lastMessage.text || '';
+                    timestamp = chatData.lastMessage.timestamp || 0;
+                    
+                    if (chatData.lastMessage.senderId) {
+                      isCurrentUserLastSender = chatData.lastMessage.senderId === currentUserId;
+                    }
+                    
+                    if (timestamp) {
+                      lastMessageTime = formatTime(new Date(timestamp));
+                    }
+                  }
+                }
+                
+                return {
+                  id: docSnapshot.id,
+                  ...userData,
+                  fullName: userData.fullName || userData.displayName || 'User',
+                  profilePhotoUrl: userData.profilePhotoUrl || 'https://via.placeholder.com/50',
+                  lastMessage: lastMessage,
+                  timestamp: timestamp,
+                  time: lastMessageTime,
+                  isCurrentUserLastSender
+                };
+              } catch (error) {
+                console.error(`Error fetching chat data for user ${docSnapshot.id}:`, error);
+                return {
+                  id: docSnapshot.id,
+                  ...userData,
+                  fullName: userData.fullName || userData.displayName || 'User',
+                  profilePhotoUrl: userData.profilePhotoUrl || 'https://via.placeholder.com/50',
+                  lastMessage: '',
+                  timestamp: 0,
+                  time: '',
+                  isCurrentUserLastSender: false
+                };
+              }
+            };
+            
+            userPromises.push(userPromise());
           }
         });
         
-        console.log('Final users list length:', usersList.length);
-        setUsers(usersList);
+        const usersWithChatData = await Promise.all(userPromises);
+        usersWithChatData.sort((a, b) => b.timestamp - a.timestamp);
+        
+        console.log('Final users list length:', usersWithChatData.length);
+        setUsers(usersWithChatData);
         
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -98,16 +137,35 @@ const ChatList = () => {
     fetchUsers();
     console.log('ChatList component mounted');
     
-    // Set up a refresh interval (optional)
-    const refreshInterval = setInterval(fetchUsers, 60000); // Refresh every minute
-    
     return () => {
-      clearInterval(refreshInterval);
       console.log('ChatList component unmounted');
     };
-  }, []); // Remove dependency array since we're not using context
+  }, []); 
 
-  // Navigation function to go to chat room
+  const formatTime = (date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '';
+    }
+    
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } 
+    else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } 
+    else if ((now - date) < 7 * 24 * 60 * 60 * 1000) {
+      const options = { weekday: 'short' };
+      return date.toLocaleDateString([], options);
+    } 
+    else {
+      return date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+    }
+  };
+
   const navigateToChatRoom = (item) => {
     console.log('Navigating to chat with user:', item.id);
     router.push({
@@ -120,7 +178,18 @@ const ChatList = () => {
     });
   };
   
-  // Function to render each chat item
+  const formatLastMessage = (item) => {
+    if (!item.lastMessage) {
+      return '';
+    }
+    
+    if (item.isCurrentUserLastSender) {
+      return `You: ${item.lastMessage}`;
+    } else {
+      return item.lastMessage;
+    }
+  };
+  
   const renderChatItem = ({ item }) => {
     return (
       <TouchableOpacity 
@@ -135,17 +204,21 @@ const ChatList = () => {
         <View style={styles.chatInfo}>
           <View style={styles.nameTimeContainer}>
             <Text style={styles.name}>{item.fullName}</Text>
-            <Text style={styles.time}>{item.time}</Text>
+            {item.time ? (
+              <Text style={styles.time}>{item.time}</Text>
+            ) : null}
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage}
+          <Text 
+            style={styles.lastMessage} 
+            numberOfLines={1}
+          >
+            {formatLastMessage(item)}
           </Text>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Loading state
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -158,7 +231,6 @@ const ChatList = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
@@ -170,7 +242,6 @@ const ChatList = () => {
             onPress={() => {
               setLoading(true);
               setError(null);
-              // Re-trigger useEffect by setting users to empty array
               setUsers([]);
             }}
           >
@@ -181,14 +252,20 @@ const ChatList = () => {
     );
   }
 
-  // Empty state
   if (users.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Chats</Text>
+          <TouchableOpacity style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>New Chat</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No users found</Text>
+          <Text style={styles.emptyText}>No conversations yet</Text>
           <Text style={styles.emptySubText}>
+            Start a new conversation with someone
           </Text>
           <TouchableOpacity 
             style={styles.retryButton}
@@ -204,10 +281,8 @@ const ChatList = () => {
     );
   }
 
-  // Main UI with users
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
       <FlatList
         data={users}
         renderItem={renderChatItem}
@@ -244,7 +319,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 16,
-    backgroundColor: '#f0f0f0', // Placeholder color
+    backgroundColor: '#f0f0f0',
   },
   chatInfo: {
     flex: 1,
