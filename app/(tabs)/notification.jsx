@@ -234,12 +234,17 @@ export default function Notifications() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+
     backgroundColor: '#F5F7FA',
+
+    backgroundColor: '#f8f8f8',
+
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+
     backgroundColor: '#4A90E2',
     paddingTop: 30,
     paddingBottom: 15,
@@ -249,6 +254,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
+
+    backgroundColor: '#2979FF',
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+
   },
   headerTitle: {
     color: 'white',
