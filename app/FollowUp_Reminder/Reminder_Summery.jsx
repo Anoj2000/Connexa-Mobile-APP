@@ -185,7 +185,7 @@ const Reminder_Summary = () => {
 
   const handleDeleteTask = (id) => {
     router.push({
-      pathname: '/FollowUp_Reminder/DeleteForm',
+      pathname: '/FollowUp_Reminder/Delete_FollowUp',
       params: { id },
     });
   };
@@ -195,7 +195,7 @@ const Reminder_Summary = () => {
   };
 
   const handleAddReminder = () => {
-    router.push('/FollowUp_Reminder/AddForm');
+    router.push('/FollowUp_Reminder/Create_FollowUp');
   };
 
   const handleCategorySelect = (category) => {
@@ -204,11 +204,11 @@ const Reminder_Summary = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={['#4c669f', '#3b5998', '#192f6a']}
-          style={styles.gradientBackground}
-        />
+     <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={['#4c669f', '#3b5998', '#192f6a']}
+        style={styles.gradientBackground}
+      />
         <ActivityIndicator size="large" color="#ffffff" />
       </SafeAreaView>
     );
@@ -216,12 +216,13 @@ const Reminder_Summary = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#4c669f', '#3b5998', '#192f6a']}
-        style={styles.gradientBackground}
-      />
+  <LinearGradient
+    colors={['#e0f7fa', '#b2ebf2', '#80deea']}
+    style={styles.gradientBackground}
+  />
+
       
-      <Text style={styles.header}>Follow-Up Reminder Dashboard</Text>
+      <Text style={styles.header}>FollowUp Dashboard</Text>
       
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   header: {
-    fontSize: 15,
+    fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 20,
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 10,
+    borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginBottom: 20,
