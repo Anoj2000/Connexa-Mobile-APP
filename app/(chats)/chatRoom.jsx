@@ -256,7 +256,7 @@ const ChatRoom = () => {
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-          extraData={messages.length} // Force re-render when new messages arrive
+          extraData={messages.length} 
         />
       )}
       
@@ -269,7 +269,7 @@ const ChatRoom = () => {
         
         <TextInput
           style={styles.input}
-          placeholder="Text Message + RCS"
+          placeholder="Text Message"
           placeholderTextColor="#999"
           value={inputMessage}
           onChangeText={setInputMessage}
