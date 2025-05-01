@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
@@ -160,127 +161,117 @@ const NewLogScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => router.back()}
-            disabled={loading}
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>New Log</Text>
-          <TouchableOpacity 
-            onPress={handleSaveLog}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#007AFF" />
-            ) : (
-              <Text style={styles.addButton}>Add</Text>
-            )}
-          </TouchableOpacity>
         </View>
 
         {/* Main Content */}
-        <View style={styles.content}>
-          {/* Contact Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Contact Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter contact name"
-              value={contactName}
-              onChangeText={setContactName}
-              placeholderTextColor="#999"
-              autoCapitalize="words"
-              editable={!loading}
-              onFocus={() => contactName.length > 0 && setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            />
-            {/* Contact Suggestions */}
-            {showSuggestions && filteredContacts.length > 0 && (
-              <View style={styles.suggestionsContainer}>
-                {filteredContacts.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.suggestionItem}
-                    onPress={() => handleContactSelect(item.name)}
-                  >
-                    <Text style={styles.suggestionText}>{item.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Contact Name Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Contact Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter contact name"
+                value={contactName}
+                onChangeText={setContactName}
+                placeholderTextColor="#999"
+                autoCapitalize="words"
+                editable={!loading}
+                onFocus={() => contactName.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              />
+              {/* Contact Suggestions */}
+              {showSuggestions && filteredContacts.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {filteredContacts.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.suggestionItem}
+                      onPress={() => handleContactSelect(item.name)}
+                    >
+                      <Text style={styles.suggestionText}>{item.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
-          {/* Interaction Type Selector */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Interaction</Text>
-            <TouchableOpacity
-              style={styles.dropdownSelector}
-              onPress={() => setShowInteractionOptions(true)}
+            {/* Interaction Type Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Interaction</Text>
+              <TouchableOpacity
+                style={styles.dropdownSelector}
+                onPress={() => setShowInteractionOptions(true)}
+                disabled={loading}
+              >
+                <Text style={selectedInteraction ? styles.selectedText : styles.placeholderText}>
+                  {selectedInteraction || 'Choose Type'}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Date Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Date</Text>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowDatePicker(true)}
+                disabled={loading}
+              >
+                <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Time Selector */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Select Time</Text>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowTimePicker(true)}
+                disabled={loading}
+              >
+                <Text style={styles.dateTimeText}>{formatTime(time)}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Note Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Note and Summary</Text>
+              <TextInput
+                style={[styles.input, styles.noteInput]}
+                placeholder="Add details about this interaction"
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                editable={!loading}
+              />
+            </View>
+
+            {/* Save Button */}
+            <TouchableOpacity 
+              style={[styles.saveButton, loading && styles.disabledButton]}
+              onPress={handleSaveLog}
               disabled={loading}
             >
-              <Text style={selectedInteraction ? styles.selectedText : styles.placeholderText}>
-                {selectedInteraction || 'Choose Type'}
+              <Text style={styles.saveButtonText}>
+                {loading ? 'Saving...' : 'Save Log'}
               </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Date Selector */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Date</Text>
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => setShowDatePicker(true)}
-              disabled={loading}
-            >
-              <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Time Selector */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Select Time</Text>
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => setShowTimePicker(true)}
-              disabled={loading}
-            >
-              <Text style={styles.dateTimeText}>{formatTime(time)}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Note Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Note and Summary</Text>
-            <TextInput
-              style={[styles.input, styles.noteInput]}
-              placeholder="Add details about this interaction"
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              editable={!loading}
-            />
-          </View>
-
-          {/* Save Button */}
-          <TouchableOpacity 
-            style={[styles.saveButton, loading && styles.disabledButton]}
-            onPress={handleSaveLog}
-            disabled={loading}
-          >
-            <Text style={styles.saveButtonText}>
-              {loading ? 'Saving...' : 'Save Log'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* Interaction Type Modal */}
         <Modal
@@ -358,9 +349,15 @@ const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -368,22 +365,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
     backgroundColor: 'white',
   },
-  backButton: {
-    width: 60,
-  },
-  backButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-  },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  addButton: {
-    color: '#007AFF',
-    fontSize: 16,
-    width: 60,
-    textAlign: 'right',
   },
   content: {
     flex: 1,
@@ -451,6 +435,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 32,
+    marginBottom: 20,
   },
   disabledButton: {
     backgroundColor: '#cccccc',
