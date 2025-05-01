@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { generatePDF } from "./pdfGenerator";  // ✅ Import PDF function
+import { generatePDF } from "./pdfGenerator"; 
 
 import {
   View,
@@ -77,7 +77,7 @@ const ViewGroup = () => {
         </Text>
       </View>
 
-      {/* ✅ Update Button */}
+      
 <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push({ pathname: "/Sharing&Collaboration/EditOneGroup", params: { id: group.id } })}>
 <LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
   <Text style={styles.buttonText}>Update</Text>
@@ -85,7 +85,7 @@ const ViewGroup = () => {
 
 </TouchableOpacity>
 
-{/* ✅ Report Button */}
+
 <TouchableOpacity style={styles.buttonContainer} onPress={() => generatePDF(group)}>
   <LinearGradient colors={["#28a745", "#28a745"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
     <Text style={styles.buttonText}>Report</Text>
@@ -93,7 +93,7 @@ const ViewGroup = () => {
 </TouchableOpacity>
 
 
-{/* ✅ Back Button */}
+
 <TouchableOpacity style={styles.buttonContainer} onPress={() => router.back()}>
 <LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
   <Text style={styles.buttonText}>Back</Text>

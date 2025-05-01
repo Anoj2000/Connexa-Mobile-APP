@@ -16,7 +16,6 @@ import { useRouter } from "expo-router";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { FIREBASE_DB } from "../../firebaseConfig";
 
-// Background image
 const backgroundImage = require("../../assets/images/img1.jpg");
 
 const CreateGroupScreen = () => {
@@ -24,7 +23,7 @@ const CreateGroupScreen = () => {
   const [description, setDescription] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedContacts, setSelectedContacts] = useState([]);
-  const router = useRouter(); // ✅ using expo-router
+  const router = useRouter(); 
 
   const contacts = [
     { id: "1", name: "John Smith" },
@@ -36,7 +35,7 @@ const CreateGroupScreen = () => {
     { id: "7", name: "David Johnson" },
     { id: "8", name: "Sophia Miller" },
   ];
-    // 🔍 **Filtered contacts list** (Updated as user types)
+    
     const filteredContacts = contacts.filter((contact) =>
       contact.name.toLowerCase().includes(searchText.toLowerCase())
     );
@@ -80,7 +79,7 @@ const CreateGroupScreen = () => {
               contacts: selectedContacts,
               createdAt: Timestamp.now(),
             });
-            // ✅ Show Success Message FIRST
+            
             Alert.alert("Success", "Group created successfully.", [
               {
                 text: "OK",
@@ -153,7 +152,7 @@ const CreateGroupScreen = () => {
             )}
           </ScrollView>
 
-          {/* ✅ Create Group Button */}
+          
           <TouchableOpacity style={styles.buttonContainer} onPress={handleCreateGroup}>
           <LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
             <Text style={styles.buttonText}>Create Group</Text>
@@ -161,7 +160,7 @@ const CreateGroupScreen = () => {
 
           </TouchableOpacity>
 
-          {/* ✅ Cancel Button */}
+          
           <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push("/")}>
           <LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
             <Text style={styles.buttonText}>Cancel</Text>
@@ -174,7 +173,7 @@ const CreateGroupScreen = () => {
   );
 };
 
-// styles (unchanged, keep all as-is)
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -295,8 +294,7 @@ const styles = StyleSheet.create({
   
   noResultsText: {
     fontSize: 14,
-    // fontWeight: "bold",
-    color: "#D63031", // 🔴 More eye-catching color
+    color: "#D63031", 
   },
   
   noResultsSubText: {

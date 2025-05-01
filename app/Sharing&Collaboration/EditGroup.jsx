@@ -86,7 +86,7 @@ const EditGroupScreen = () => {
               </Text>
             </View>
         
-            {/* Edit icon (also navigates to EditOneGroup) */}
+            
             <TouchableOpacity
               onPress={() =>
                 router.push({

@@ -3,22 +3,22 @@ import { Link } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRef } from "react";
 
-// Use only image 1
+
 const image = require("../../assets/images/img1.jpg");
 
 export default function Groups() {
   return (
     <View style={styles.container}>
-      {/* Background Image */}
+      
       <Animated.Image source={image} style={styles.backgroundImage} />
       
-      {/* Overlay Effect */}
+     
       <View style={styles.overlay} />
 
       <View style={styles.content}>
         <Text style={styles.pageTitle}>Manage Groups</Text>
 
-        {/* Navigation Buttons */}
+        
         <LinkButton href="/Sharing&Collaboration/AllGroups" text="👥 View All Groups" />
         <LinkButton href="/Sharing&Collaboration/CreateGroupScreen" text="➕ Create a New Group" />
         <LinkButton href="/Sharing&Collaboration/EditGroup" text="✏️ Edit Group" />
@@ -28,7 +28,7 @@ export default function Groups() {
   );
 }
 
-// Reusable Button Component
+
 const LinkButton = ({ href, text }) => {
   const buttonAnim = useRef(new Animated.Value(1)).current;
 
@@ -62,7 +62,7 @@ const LinkButton = ({ href, text }) => {
   );
 };
 
-// Styles
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark overlay for readability
+    backgroundColor: "rgba(0, 0, 0, 0.5)", 
   },
   content: {
     alignItems: "center",

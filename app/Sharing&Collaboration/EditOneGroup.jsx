@@ -96,7 +96,7 @@ const EditOneGroup = () => {
       Alert.alert("Success", "Group updated successfully.", [
         {
           text: "OK",
-          onPress: () => router.push("/Sharing&Collaboration/EditGroup"), // ✅ Go back to EditGroup
+          onPress: () => router.push("/Sharing&Collaboration/EditGroup"), 
         },
       ]);
     } catch (error) {
@@ -148,14 +148,14 @@ const EditOneGroup = () => {
             ))}
           </ScrollView>
 
-          {/* Update Button */}
+          
           <TouchableOpacity style={styles.buttonContainer} onPress={handleUpdate}>
             <LinearGradient colors={["#007BFF", "#007BFF"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
               <Text style={styles.buttonText}>Update Group</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Cancel Button */}
+          
           <TouchableOpacity style={styles.buttonContainer} onPress={() => router.push("/")}>
             <LinearGradient colors={["#FF0000", "#FF0000"]} start={[0, 0]} end={[1, 1]} style={styles.button}>
               <Text style={styles.buttonText}>Cancel</Text>

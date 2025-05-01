@@ -63,7 +63,7 @@ const DeleteGroup = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Delete Groups</Text>
 
-      {/* Search Bar */}
+      
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchBar}
@@ -74,7 +74,7 @@ const DeleteGroup = () => {
         />
       </View>
 
-      {/* Groups List */}
+      
       <FlatList
         data={filteredGroups}
         keyExtractor={(item) => item.id}
