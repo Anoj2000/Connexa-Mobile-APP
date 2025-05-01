@@ -15,6 +15,7 @@ import {
 import { FIREBASE_AUTH, FIREBASE_DB } from '../../firebaseConfig';
 import { collection, getDocs, query, getDoc, doc } from 'firebase/firestore';
 
+
 const ChatList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -212,14 +213,6 @@ const ChatList = () => {
             ) : null}
           </View>
           
-          {/* Last Message - This is the part we're adding */}
-          {item.lastMessage ? (
-            <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.isCurrentUserLastSender ? 'You: ' : ''}{item.lastMessage}
-            </Text>
-          ) : (
-            <Text style={styles.noMessageText}>No messages yet</Text>
-          )}
         </View>
       </TouchableOpacity>
     );
