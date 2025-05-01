@@ -4,17 +4,17 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
   SafeAreaView,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   FlatList,
-  StatusBar
+  StatusBar,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FIREBASE_AUTH, FIREBASE_RTDB } from '../../firebaseConfig';
+import { FIREBASE_AUTH, FIREBASE_RTDB, FIREBASE_DB } from '../../firebaseConfig';
 import {
   ref,
   push,
@@ -22,82 +22,128 @@ import {
   onValue,
   query,
   orderByChild,
-  get,
+  get
 } from 'firebase/database';
+import { doc, getDoc } from 'firebase/firestore';
 
 const ChatRoom = () => {
-  const { userId, name, avatar } = useLocalSearchParams();
+  const { userId, name } = useLocalSearchParams();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [recipientData, setRecipientData] = useState(null);
   const flatListRef = useRef(null);
 
-  // Get the current user
+  // Get current user data
   useEffect(() => {
     const auth = FIREBASE_AUTH;
     if (auth.currentUser) {
-      setCurrentUser(auth.currentUser);
-      
-      // Fetch current user details for display
       const fetchUserDetails = async () => {
         try {
-          const userRef = ref(FIREBASE_RTDB, `users/${auth.currentUser.uid}`);
-          const snapshot = await get(userRef);
+          const userRef = doc(FIREBASE_DB, 'users', auth.currentUser.uid);
+          const snapshot = await getDoc(userRef);
           
           if (snapshot.exists()) {
             setCurrentUser({
               ...auth.currentUser,
-              ...snapshot.val()
+              ...snapshot.data(),
+              profilePhotoUrl: snapshot.data().profilePhoto || null
             });
+          } else {
+            const rtdbUserRef = ref(FIREBASE_RTDB, `users/${auth.currentUser.uid}`);
+            const rtdbSnapshot = await get(rtdbUserRef);
+            
+            if (rtdbSnapshot.exists()) {
+              setCurrentUser({
+                ...auth.currentUser,
+                ...rtdbSnapshot.val(),
+                profilePhotoUrl: rtdbSnapshot.val().profilePhoto || null
+              });
+            } else {
+              setCurrentUser(auth.currentUser);
+            }
           }
         } catch (error) {
           console.error('Error fetching user details:', error);
+          setCurrentUser(auth.currentUser);
         }
       };
-      
       fetchUserDetails();
     }
   }, []);
 
-  // Load chat messages
+  // Fetch recipient data
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchRecipientData = async () => {
+      try {
+        const userRef = doc(FIREBASE_DB, 'users', userId);
+        const snapshot = await getDoc(userRef);
+        
+        if (snapshot.exists()) {
+          setRecipientData({
+            id: userId,
+            name: name || snapshot.data().fullName || 'User',
+            profilePhoto: snapshot.data().profilePhoto || null
+          });
+        } else {
+          const rtdbUserRef = ref(FIREBASE_RTDB, `users/${userId}`);
+          const rtdbSnapshot = await get(rtdbUserRef);
+          
+          if (rtdbSnapshot.exists()) {
+            setRecipientData({
+              id: userId,
+              name: name || rtdbSnapshot.val().fullName || 'User',
+              profilePhoto: rtdbSnapshot.val().profilePhoto || null
+            });
+          } else {
+            setRecipientData({
+              id: userId,
+              name: name || 'User',
+              profilePhoto: null
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching recipient data:', error);
+        setRecipientData({
+          id: userId,
+          name: name || 'User',
+          profilePhoto: null
+        });
+      }
+    };
+    fetchRecipientData();
+  }, [userId, name]);
+
+  // Load messages
   useEffect(() => {
     if (!userId || !currentUser) return;
 
-    // Create a unique chat ID based on the two user IDs
     const chatId = [currentUser.uid, userId].sort().join('_');
-    
-    console.log(`Subscribing to messages for chat: ${chatId}`);
-    
-    // Reference to the messages in this chat
     const messagesRef = ref(FIREBASE_RTDB, `chats/${chatId}/messages`);
-    
-    // Query to order messages by timestamp
     const messagesQuery = query(messagesRef, orderByChild('createdAt'));
     
-    // Set up real-time listener
     const unsubscribe = onValue(messagesQuery, (snapshot) => {
       const messagesData = [];
       
       snapshot.forEach((childSnapshot) => {
         const message = childSnapshot.val();
-        // Ensure timestamp is a valid number before conversion
         const timestamp = typeof message.createdAt === 'number' ? message.createdAt : Date.now();
         
         messagesData.push({
           id: childSnapshot.key,
           ...message,
-          // Store both timestamp and Date object for reliable rendering
           timestamp: timestamp,
           createdAt: new Date(timestamp)
         });
       });
       
-      console.log(`Received ${messagesData.length} messages`);
       setMessages(messagesData);
       setLoading(false);
       
-      // Scroll to bottom when messages load
       if (messagesData.length > 0 && flatListRef.current) {
         setTimeout(() => {
           flatListRef.current.scrollToEnd({ animated: false });
@@ -108,7 +154,6 @@ const ChatRoom = () => {
       setLoading(false);
     });
     
-    // Clean up listener
     return () => unsubscribe();
   }, [userId, currentUser]);
 
@@ -116,41 +161,28 @@ const ChatRoom = () => {
     if (!inputMessage.trim() || !userId || !currentUser) return;
     
     try {
-      // Create a unique chat ID based on the two user IDs
       const chatId = [currentUser.uid, userId].sort().join('_');
-      
-      // Reference to the messages in this chat
       const messagesRef = ref(FIREBASE_RTDB, `chats/${chatId}/messages`);
-      
-      // Generate a new message ID
       const newMessageRef = push(messagesRef);
-      
-      // Current timestamp
       const timestamp = Date.now();
       
-      // Message data
       const messageData = {
         text: inputMessage.trim(),
-        createdAt: timestamp,  // Use timestamp for Realtime DB
+        createdAt: timestamp,
         senderId: currentUser.uid,
         senderName: currentUser.displayName || currentUser.fullName || 'User',
         receiverId: userId
       };
       
-      // Save the message
       await set(newMessageRef, messageData);
-      
-      // Clear input
       setInputMessage('');
       
-      // Update last message for both users for chat list preview
       const lastMessageData = {
         text: inputMessage.trim(),
         timestamp: timestamp,
         senderId: currentUser.uid
       };
       
-      // Update chat metadata
       await set(ref(FIREBASE_RTDB, `chats/${chatId}/metadata`), {
         lastMessage: lastMessageData,
         updatedAt: timestamp,
@@ -159,7 +191,6 @@ const ChatRoom = () => {
           [userId]: true
         }
       });
-      
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message');
@@ -177,14 +208,21 @@ const ChatRoom = () => {
     return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
-  // Render each message
-  const renderMessage = ({ item, index }) => {
+  const UserAvatar = ({ user, size = 28 }) => {
+    return (
+      <View style={[styles.avatarContainer, { width: size, height: size }]}>
+        <Text style={[styles.avatarText, { fontSize: size * 0.5 }]}>
+          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderMessage = ({ item }) => {
     const isCurrentUser = item.senderId === currentUser?.uid;
     
-    // Skip rendering if invalid data
     if (!item || !item.text) return null;
     
-    // Get message time
     const messageTime = formatTime(item.createdAt);
     
     return (
@@ -193,30 +231,24 @@ const ChatRoom = () => {
         isCurrentUser ? styles.sentMessageContainer : styles.receivedMessageContainer
       ]}>
         {!isCurrentUser && (
-          <Image 
-            source={{ uri: avatar || undefined }} 
-            style={styles.messageAvatar} 
-            defaultSource={require('../../assets/images/user1.jpg')}
-          />
+          <UserAvatar user={recipientData} size={28} />
         )}
+        
         <View style={[
           styles.messageBubble,
           isCurrentUser ? styles.sentMessageBubble : styles.receivedMessageBubble
         ]}>
           <Text style={styles.messageText}>{item.text}</Text>
+          <Text style={[
+            styles.messageTime,
+            isCurrentUser ? styles.sentMessageTime : styles.receivedMessageTime
+          ]}>
+            {messageTime}
+          </Text>
         </View>
-        <Text style={[
-          styles.messageTime,
-          isCurrentUser ? styles.sentMessageTime : styles.receivedMessageTime
-        ]}>
-          {messageTime}
-        </Text>
+        
         {isCurrentUser && (
-          <Image 
-            source={{ uri: currentUser?.profilePhotoUrl || undefined }} 
-            style={styles.messageAvatar}
-            defaultSource={require('../../assets/images/user1.jpg')}
-          />
+          <UserAvatar user={currentUser} size={28} />
         )}
       </View>
     );
@@ -226,26 +258,21 @@ const ChatRoom = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Chat Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={28} color="#007AFF" />
         </TouchableOpacity>
         
         <View style={styles.headerCenter}>
-          <Image 
-            source={{ uri: avatar || undefined }} 
-            style={styles.headerAvatar}
-            defaultSource={require('../../assets/images/user1.jpg')}
-          />
-          <Text style={styles.headerName}>{name}</Text>
+          <UserAvatar user={recipientData} size={36} />
+          <Text style={styles.headerName}>{recipientData?.name || name || 'User'}</Text>
         </View>
       </View>
       
-      {/* Messages List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <Text>Loading messages...</Text>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading messages...</Text>
         </View>
       ) : (
         <FlatList
@@ -256,20 +283,17 @@ const ChatRoom = () => {
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-          extraData={messages.length} 
         />
       )}
       
-      {/* Message Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         style={styles.inputContainer}
       >
-        
         <TextInput
           style={styles.input}
-          placeholder="Text Message"
+          placeholder="Type a message..."
           placeholderTextColor="#999"
           value={inputMessage}
           onChangeText={setInputMessage}
@@ -277,11 +301,11 @@ const ChatRoom = () => {
           maxHeight={100}
         />
         
-        {inputMessage.trim().length > 0 ? (
+        {inputMessage.trim().length > 0 && (
           <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
             <Ionicons name="send" size={24} color="#007AFF" />
           </TouchableOpacity>
-        ) : null}
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -297,13 +321,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#fff',
   },
   backButton: {
     padding: 5,
+    marginRight: 10,
   },
   headerCenter: {
     flex: 1,
@@ -311,33 +336,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#e0e0e0',
-  },
   headerName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginLeft: 10,
-  },
-  videoCallButton: {
-    padding: 5,
+    marginLeft: 12,
+    color: '#333',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   messagesList: {
     padding: 15,
-    paddingBottom: 30,
+    paddingBottom: 20,
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: 15,
     alignItems: 'flex-end',
+    marginBottom: 12,
   },
   sentMessageContainer: {
     justifyContent: 'flex-end',
@@ -345,23 +368,29 @@ const styles = StyleSheet.create({
   receivedMessageContainer: {
     justifyContent: 'flex-start',
   },
-  messageAvatar: {
-    width: 28,
-    height: 28,
+  avatarContainer: {
     borderRadius: 14,
-    marginHorizontal: 5,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  avatarText: {
+    color: '#555',
+    fontWeight: 'bold',
   },
   messageBubble: {
-    maxWidth: '70%',
+    maxWidth: '75%',
     padding: 12,
-    borderRadius: 18,
+    borderRadius: 12,
+    marginHorizontal: 6,
   },
   sentMessageBubble: {
-    backgroundColor: '#4CD964', // Green color for sent messages
+    backgroundColor: '#DCF8C6',
     borderBottomRightRadius: 4,
   },
   receivedMessageBubble: {
-    backgroundColor: '#F2F2F2', // Light gray for received messages
+    backgroundColor: '#ECECEC',
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -369,32 +398,28 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   messageTime: {
-    fontSize: 12,
-    color: '#8E8E93',
-    marginHorizontal: 5,
+    fontSize: 11,
+    marginTop: 4,
     alignSelf: 'flex-end',
   },
   sentMessageTime: {
-    textAlign: 'right',
+    color: '#689F38',
   },
   receivedMessageTime: {
-    textAlign: 'left',
+    color: '#666',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 25 : 12,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    backgroundColor: '#f8f8f8',
-  },
-  attachButton: {
-    padding: 8,
-    marginRight: 5,
+    backgroundColor: '#fff',
   },
   input: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 20,
@@ -402,13 +427,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     maxHeight: 100,
     fontSize: 16,
-  },
-  micButton: {
-    padding: 8,
-    marginLeft: 5,
+    color: '#333',
   },
   sendButton: {
+    marginLeft: 10,
     padding: 8,
-    marginLeft: 5,
   },
 });

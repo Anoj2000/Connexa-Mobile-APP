@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
@@ -48,16 +48,22 @@ const ChatHeader = () => {
         <Text style={styles.headerTitle}>Chats</Text>
         <TouchableOpacity onPress={handleLogout}>
           {loading ? (
-            <View style={styles.profileImagePlaceholder} />
+            <View style={styles.profileImagePlaceholder}>
+              <ActivityIndicator size="small" color="#FFF" />
+            </View>
           ) : (
-            <Image 
-              source={
-                userData?.profilePhotoUrl 
-                  ? { uri: userData.profilePhotoUrl } 
-                  : require('../../assets/images/user1.jpg')
-              } 
-              style={styles.profileImage}
-            />
+            userData?.profilePhoto ? (
+              <Image 
+                source={{ uri: userData.profilePhoto }} 
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profileInitials}>
+                <Text style={styles.initialsText}>
+                  {userData?.fullName ? userData.fullName.charAt(0).toUpperCase() : 'U'}
+                </Text>
+              </View>
+            )
           )}
         </TouchableOpacity>
       </View>
@@ -78,28 +84,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20, 
     paddingBottom: 2,
-    backgroundColor: '#2979FF', 
+    backgroundColor: '#4A90E2', // Changed to match profile blue color
   },
   headerTitle: {
     fontSize: 30,
     paddingBottom: 20,
-    paddingTop:20,
+    paddingTop: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
   profileImage: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: '#fff',
   },
   profileImagePlaceholder: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderWidth: 2,
     borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2F80ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  initialsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFF',
   }
 });
