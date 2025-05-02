@@ -2,9 +2,8 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import ChatHeader from '../(chats)/chatHeader';
 import ChatList from '../(chats)/chatList';
-//import ChatRoom from '../(chats)/chatRoom';
 
-// Renamed from 'chat' to 'Chat' (uppercase first letter)
+
 const Chat = () => {
   return (
     <View style={styles.container}>
@@ -14,7 +13,7 @@ const Chat = () => {
   );
 };
 
-export default Chat; // Export with uppercase name
+export default Chat; 
 
 const styles = StyleSheet.create({
   container: {

@@ -235,19 +235,6 @@ const ReadLogScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#2979FF" barStyle="light-content" />
       
-      {/* Header Section */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()} 
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Interaction Logs</Text>
-
-      </View>
-      
       {/* Search Bar Section */}
       <View style={styles.searchContainer}>
         <Ionicons name="search-outline" size={20} color="#999" style={styles.searchIcon} />

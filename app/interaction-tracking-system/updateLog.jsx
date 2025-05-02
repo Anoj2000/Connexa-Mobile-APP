@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -129,7 +130,6 @@ export default function UpdateLogScreen() {
       
       // Method 1: Get document directly if you have the document ID
       if (id.includes('/')) {
-        // If id contains a path separator, it might be a full path
         const documentRef = doc(FIREBASE_DB, id);
         const docSnap = await getDoc(documentRef);
         
@@ -312,84 +312,82 @@ export default function UpdateLogScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.innerContainer}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-              <Ionicons name="chevron-back" size={24} color="#007AFF" />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Log</Text>
-          </View>
-          
-          <View style={styles.formContainer}>
-            {/* Contact Name (read-only) */}
-            <Text style={styles.label}>Contact Name</Text>
-            <View style={styles.readOnlyField}>
-              <Text style={styles.readOnlyText}>{contactName}</Text>
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.innerContainer}>     
+            <View style={styles.formContainer}>
+              {/* Contact Name (read-only) */}
+              <Text style={styles.label}>Contact Name</Text>
+              <View style={styles.readOnlyField}>
+                <Text style={styles.readOnlyText}>{contactName}</Text>
+              </View>
+              
+              {/* Interaction Type */}
+              <Text style={styles.label}>Select Interaction</Text>
+              <TouchableOpacity 
+                style={styles.dropdownContainer}
+                onPress={() => setIsTypeModalVisible(true)}
+              >
+                <Text style={!interactionType ? styles.placeholderText : styles.dropdownText}>
+                  {interactionType || 'Choose Type'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#999" />
+              </TouchableOpacity>
+              
+              {/* Date Picker */}
+              <Text style={styles.label}>Select Date</Text>
+              <TouchableOpacity 
+                style={styles.dropdownContainer}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dropdownText}>
+                  {formatDate(date)}
+                </Text>
+                <Ionicons name="calendar" size={20} color="#999" />
+              </TouchableOpacity>
+              
+              {/* Time Picker */}
+              <Text style={styles.label}>Select Time</Text>
+              <TouchableOpacity 
+                style={styles.dropdownContainer}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text style={styles.dropdownText}>
+                  {formatTime(time)}
+                </Text>
+                <Ionicons name="time" size={20} color="#999" />
+              </TouchableOpacity>
+              
+              {/* Note */}
+              <Text style={styles.label}>Note and Summary</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Add details about this interaction"
+                placeholderTextColor="#999"
+                value={note}
+                onChangeText={setNote}
+                multiline
+                numberOfLines={4}
+              />
+              
+              {/* Update Button */}
+              <TouchableOpacity 
+                style={styles.updateButton}
+                onPress={handleUpdateLog}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.updateButtonText}>Update Log</Text>
+                )}
+              </TouchableOpacity>
             </View>
-            
-            {/* Interaction Type */}
-            <Text style={styles.label}>Select Interaction</Text>
-            <TouchableOpacity 
-              style={styles.dropdownContainer}
-              onPress={() => setIsTypeModalVisible(true)}
-            >
-              <Text style={!interactionType ? styles.placeholderText : styles.dropdownText}>
-                {interactionType || 'Choose Type'}
-              </Text>
-              <Ionicons name="chevron-down" size={20} color="#999" />
-            </TouchableOpacity>
-            
-            {/* Date Picker */}
-            <Text style={styles.label}>Select Date</Text>
-            <TouchableOpacity 
-              style={styles.dropdownContainer}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {formatDate(date)}
-              </Text>
-              <Ionicons name="calendar" size={20} color="#999" />
-            </TouchableOpacity>
-            
-            {/* Time Picker */}
-            <Text style={styles.label}>Select Time</Text>
-            <TouchableOpacity 
-              style={styles.dropdownContainer}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {formatTime(time)}
-              </Text>
-              <Ionicons name="time" size={20} color="#999" />
-            </TouchableOpacity>
-            
-            {/* Note */}
-            <Text style={styles.label}>Note and Summary</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Add details about this interaction"
-              placeholderTextColor="#999"
-              value={note}
-              onChangeText={setNote}
-              multiline
-              numberOfLines={4}
-            />
-            
-            {/* Update Button */}
-            <TouchableOpacity 
-              style={styles.updateButton}
-              onPress={handleUpdateLog}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.updateButtonText}>Update Log</Text>
-              )}
-            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </TouchableWithoutFeedback>
       
       {/* Interaction Type Modal */}
@@ -458,6 +456,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 20,
   },
   innerContainer: {
     flex: 1,
@@ -545,6 +549,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginTop: 24,
+    marginBottom: 20,
   },
   updateButtonText: {
     color: '#fff',
