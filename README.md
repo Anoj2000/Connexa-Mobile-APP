@@ -8,15 +8,15 @@
 * **Real-time Messaging and Notifications**
 * **Interactive User Interface with Dynamic Components**
 * **Integration with External APIs for Enhanced Functionality**
-* **Secure Data Handling with JWT Authentication**
+* **Secure Data Handling with Firebase Authentication**
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: React Native, Expo, Tailwind CSS
+* **Frontend**: React Native, Expo
 * **Backend**: Node.js, Express.js
-* **Database**: MongoDB
-* **Authentication**: JWT (JSON Web Tokens)
-* **APIs Used**: OpenWeatherMap API, Google Maps API
+* **Database**: (Firebase - Cloud Firestore, Realtime Database)
+* **Authentication**: Firebase Authentication
+* **APIs Used**: Fast ApI
 
 ## 📐 System Architecture
 
