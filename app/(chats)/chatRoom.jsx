@@ -35,7 +35,7 @@ const ChatRoom = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [recipientData, setRecipientData] = useState(null);
   const flatListRef = useRef(null);
-  const API_URL = 'https://2023-2402-4000-13cd-2f7e-876-a9c1-210b-63e5.ngrok-free.app/predict';
+  const API_URL = 'https://cb89-43-250-243-125.ngrok-free.app/predict';
 
 
   // Get current user data
