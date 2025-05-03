@@ -17,7 +17,7 @@ import { FIREBASE_DB } from '../../firebaseConfig';
 import { router } from 'expo-router';
 
 const InteractionReminder = () => {
-  // States for the form and data
+  // States for the form and data55555555555555v 
   const [logs, setLogs] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
   const [reminderTitle, setReminderTitle] = useState('');
