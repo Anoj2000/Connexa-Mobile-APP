@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { UserProvider } from './Auth/AuthCheck'; // adjust path if needed
+import { UserProvider } from './Auth/AuthCheck'; 
 
 export default function RootLayout() {
   return (

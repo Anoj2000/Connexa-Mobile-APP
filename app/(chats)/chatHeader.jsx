@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20, 
     paddingBottom: 2,
-    backgroundColor: '#4A90E2', // Changed to match profile blue color
+    backgroundColor: '#2979FF', // Changed to match profile blue color
   },
   headerTitle: {
     fontSize: 30,
