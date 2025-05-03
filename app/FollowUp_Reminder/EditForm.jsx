@@ -37,6 +37,16 @@ import {
   
       if (id) fetchReminder();
     }, [id]);
+    const validate = () => {
+      const newErrors = {};
+      if (!reminder.task?.trim()) newErrors.task = 'Task is required';
+      if (!reminder.contact?.trim()) newErrors.contact = 'Contact is required';
+      if (!reminder.dueDate?.trim()) newErrors.dueDate = 'Due date is required';
+      if (!reminder.assignedTo?.trim()) newErrors.assignedTo = 'Assigned To is required';
+      if (!reminder.status?.trim()) newErrors.status = 'Priority must be selected';
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
   
     const handleUpdate = async () => {
       try {

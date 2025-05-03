@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { FIREBASE_AUTH, FIREBASE_DB } from '../firebaseConfig';
 
@@ -46,7 +46,16 @@ export default function Sidebar() {
   };
 
   const navigateToProfile = () => {
-    router.push('/profile'); // Make sure you have a profile screen
+    router.push('/profile');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(FIREBASE_AUTH);
+      router.replace('/index'); 
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   if (loading) {
@@ -84,7 +93,7 @@ export default function Sidebar() {
 
       {/* Logout Button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
