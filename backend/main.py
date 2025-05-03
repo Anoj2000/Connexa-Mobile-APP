@@ -22,7 +22,7 @@ label_mapping = {
     2: '❤️',  # Love
     3: '😡',  # Anger
     4: '😱',  # Fear
-    5: '😲'   # Surprise
+    5: '😲'  # Surprise
 }
 
 # Max sequence length (same used during training)
@@ -36,7 +36,7 @@ app = FastAPI()
 # CORS configuration
 origins = [
     "http://localhost:8081",  # React Native development server
-    "https://2023-2402-4000-13cd-2f7e-876-a9c1-210b-63e5.ngrok-free.app"  # Ngrok URL (replace with your actual ngrok URL)
+    "https://73c8-2402-4000-2270-185-8103-a401-f2d3-c729.ngrok-free.app"  # Ngrok URL (replace with your actual ngrok URL)
 ]
 
 app.add_middleware(
