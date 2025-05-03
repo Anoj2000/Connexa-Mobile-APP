@@ -15,14 +15,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 
 export default function UpdateContact() {
   const params = useLocalSearchParams();
   const contactId = params.id;
   
-  // State variables for form data
+  // State variables
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -31,23 +31,23 @@ export default function UpdateContact() {
   const [profileImage, setProfileImage] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [contactTypes, setContactTypes] = useState([]);
+  const [groups, setGroups] = useState([]);
   
   // Animation ref
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
-  // State for form validation
+  // Form validation
   const [errors, setErrors] = useState({
     name: '',
     email: '',
     phone: '',
     note: ''
   });
-  
-  const contactTypes = ['Family', 'Friend', 'Office', 'Relations'];
 
-  // Fetch contact data on component mount
+  // Fetch contact data and types/groups on component mount
   useEffect(() => {
-    const fetchContactData = async () => {
+    const fetchData = async () => {
       try {
         if (!contactId) {
           Alert.alert("Error", "Contact ID is missing");
@@ -55,6 +55,7 @@ export default function UpdateContact() {
           return;
         }
         
+        // Fetch contact data
         const contactRef = doc(FIREBASE_DB, "contacts", contactId);
         const contactSnap = await getDoc(contactRef);
         
@@ -66,26 +67,40 @@ export default function UpdateContact() {
           setNote(contactData.note || '');
           setContactType(contactData.type || 'Select contact type');
           setProfileImage(contactData.profileImage || null);
-          setIsLoading(false);
-          
-          // Start fade-in animation
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }).start();
         } else {
           Alert.alert("Error", "Contact not found");
           router.back();
+          return;
         }
+        
+        // Fetch groups
+        const groupsSnapshot = await getDocs(collection(FIREBASE_DB, "groups"));
+        const fetchedGroups = groupsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name
+        }));
+        setGroups(fetchedGroups);
+        
+        // Combine default types with groups
+        const defaultTypes = [];
+        setContactTypes([...defaultTypes, ...fetchedGroups.map(group => group.name)]);
+        
+        setIsLoading(false);
+        
+        // Start fade-in animation
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
       } catch (error) {
-        console.error("Error fetching contact data: ", error);
-        Alert.alert("Error", "Failed to load contact data");
+        console.error("Error fetching data: ", error);
+        Alert.alert("Error", "Failed to load data");
         router.back();
       }
     };
     
-    fetchContactData();
+    fetchData();
   }, [contactId]);
 
   // Handle image picker
@@ -417,6 +432,9 @@ export default function UpdateContact() {
                   }}
                 >
                   <Text style={styles.modalItemText}>{item}</Text>
+                  {groups.some(group => group.name === item) && (
+                    <Text style={styles.groupBadge}>Group</Text>
+                  )}
                 </TouchableOpacity>
               )}
             />
@@ -463,7 +481,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   headerRight: {
-    width: 80, // Balance the header layout
+    width: 80,
   },
   backButton: {
     flexDirection: 'row',
@@ -618,6 +636,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E1E1E1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   modalItemText: {
     fontSize: 16,
@@ -631,5 +652,15 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  groupBadge: {
+    backgroundColor: '#4A90E2',
+    color: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    fontSize: 12,
+    marginLeft: 10,
+    overflow: 'hidden',
   },
 });
