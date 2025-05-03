@@ -9,3 +9,5 @@ emoji
 tensorflow
 keras
 scikit-learn
+fastapi
+uvicorn
