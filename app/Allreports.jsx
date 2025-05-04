@@ -18,7 +18,7 @@ export default function Allreports() {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Report Type Tabs - Now with 4 tabs */}
+      {/* Report Type Tab - Now with 4 tabs */}
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
