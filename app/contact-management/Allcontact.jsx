@@ -1,95 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, StatusBar, Image, Alert,ActivityIndicator,RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput, FlatList, StatusBar, Image, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  deleteDoc, 
-  doc,
-  where 
-} from 'firebase/firestore';
-import { FIREBASE_DB, FIREBASE_AUTH } from '../../firebaseConfig';
+// Import Firebase functions for data retrieval and deletion
+import { collection, getDocs, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { FIREBASE_DB } from '../../firebaseConfig';
 
 export default function AllContact() {
+  // State for storing contacts retrieved from Firebase
   const [contacts, setContacts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredContacts, setFilteredContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch contacts from Firestore
-  const fetchContacts = async () => {
-    try {
-      setLoading(true);
-      const user = FIREBASE_AUTH.currentUser;
-      if (!user) return;
-
-      const contactsRef = collection(FIREBASE_DB, "contacts");
-      const q = query(
-        contactsRef, 
-        where("userId", "==", user.uid),
-        orderBy("name", "asc")
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const contactsList = [];
-      
-      querySnapshot.forEach((doc) => {
-        contactsList.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-      
-      setContacts(contactsList);
-      setFilteredContacts(contactsList);
-    } catch (error) {
-      console.error("Error fetching contacts: ", error);
-      Alert.alert("Error", "Failed to load contacts. Please try again.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Set up real-time listener
+  // start  the  FIREBASE DATA RETRIEVAL SECTION 
+  // This useEffect hook is responsible for fetching contact data from Firebase
   useEffect(() => {
-    const user = FIREBASE_AUTH.currentUser;
-    if (!user) return;
-
-    const contactsRef = collection(FIREBASE_DB, "contacts");
-    const q = query(
-      contactsRef, 
-      where("userId", "==", user.uid),
-      orderBy("name", "asc")
-    );
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const contactsList = [];
-      querySnapshot.forEach((doc) => {
-        contactsList.push({
-          id: doc.id,
-          ...doc.data()
+    const fetchContacts = async () => {
+      try {
+        setLoading(true);
+        // Create reference to the contacts collection in Firestore
+        const contactsRef = collection(FIREBASE_DB, "contacts");
+        // Create a query to sort contacts by name in ascending order
+        const q = query(contactsRef, orderBy("name", "asc"));
+        
+        // Set up real-time listener for contacts using onSnapshot
+        // This will update the contacts list whenever data changes in Firestore
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const contactsList = [];
+          // Iterate through each document in the snapshot
+          querySnapshot.forEach((doc) => {
+            // Add document data and ID to our contacts list
+            contactsList.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+          // Update state with the retrieved contacts
+          setContacts(contactsList);
+          setLoading(false);
+        }, (error) => {
+          // Handle errors in retrieving data
+          console.error("Error fetching contacts: ", error);
+          Alert.alert("Error", "Failed to load contacts. Please try again.");
+          setLoading(false);
         });
-      });
-      setContacts(contactsList);
-      setFilteredContacts(contactsList);
-    }, (error) => {
-      console.error("Error in snapshot: ", error);
-    });
+        
+        // Clean up the listener when component unmounts to prevent memory leaks
+        return () => unsubscribe();
+      } catch (error) {
+        // Handle any errors in setting up the listener
+        console.error("Error setting up contacts listener: ", error);
+        Alert.alert("Error", "Something went wrong. Please try again.");
+        setLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    // Call the function to fetch contacts when component mounts
+    fetchContacts();
   }, []);
+  // ========== END OF FIREBASE DATA RETRIEVAL SECTION ==========
 
+  // ========== CONTACT FILTERING SECTION ==========
   // Filter contacts based on search query
   useEffect(() => {
     if (searchQuery.trim() === '') {
+      // If search query is empty, show all contacts
       setFilteredContacts(contacts);
     } else {
+      // Filter contacts by name, phone, or email
       const filtered = contacts.filter(contact => 
         contact.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         contact.phone.includes(searchQuery) ||
@@ -98,97 +77,109 @@ export default function AllContact() {
       setFilteredContacts(filtered);
     }
   }, [searchQuery, contacts]);
+  // ========== END OF CONTACT FILTERING SECTION ==========
 
-  // Delete contact function
+  // ========== CONTACT DELETE FUNCTION ==========
+  // Function to delete a contact from Firestore
   const deleteContact = async (contactId) => {
     try {
+      // Reference to the specific contact document in Firestore
       const contactRef = doc(FIREBASE_DB, "contacts", contactId);
+      
+      // Delete the document from Firestore
       await deleteDoc(contactRef);
+      
+      console.log(`Contact with ID ${contactId} deleted successfully`);
+      
+      // No need to manually update the contacts list as the onSnapshot listener
+      // in the useEffect hook will automatically update the UI when the 
+      // Firestore database changes
     } catch (error) {
       console.error("Error deleting contact: ", error);
-      Alert.alert("Error", "Failed to delete contact. Please try again.");
+      Alert.alert(
+        "Error",
+        "Failed to delete contact. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
+  // ========== END OF CONTACT DELETE FUNCTION ==========
 
-  // Handle refresh
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchContacts();
-  };
-
-  // Render each contact item
+  // ========== CONTACT ITEM DISPLAY SECTION ==========
+  // Render each contact item in the list
   const renderContactItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.contactItem}
-      onPress={() => router.push({
-        pathname: '/contact-management/contactDetails',
-        params: { id: item.id }
-      })}
+      onPress={() => {
+        // Navigate to contact details (you can implement this later)
+        console.log(`View details for ${item.name}`);
+        // Example: router.push(/contact-details/${item.id});
+      }}
     >
       <View style={styles.contactInfo}>
         <View style={styles.avatar}>
+          {/* Display profile image if available, otherwise show first letter of name */}
           {item.profileImage ? (
-            <Image source={{ uri: item.profileImage }} style={styles.avatarImage} />
+            <Image source={item.profileImage} style={styles.avatarImage} />
           ) : (
             <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
           )}
         </View>
-        <View style={styles.contactTextContainer}>
-          <Text style={styles.contactName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.contactPhone} numberOfLines={1}>{item.phone}</Text>
-          {item.type && (
-            <View style={[
-              styles.typeBadge,
-              { backgroundColor: getTypeColor(item.type) }
-            ]}>
-              <Text style={styles.typeText}>{item.type}</Text>
-            </View>
-          )}
+        <View>
+          {/* Display contact information */}
+          <Text style={styles.contactName}>{item.name}</Text>
+          <Text style={styles.contactPhone}>{item.phone}</Text>
+          <Text style={styles.contactType}>{item.type || 'Other'}</Text>
         </View>
       </View>
       <View style={styles.contactActions}>
+        {/* Update action button */}
         <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push({
-            pathname: '/contact-management/Updatecontact',
-            params: { id: item.id }
-          })}
-        >
-          <Ionicons name="create-outline" size={22} color="#4CAF50" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
+          style={[styles.actionButton, styles.updateButton]}
           onPress={() => {
+            console.log(`Update contact ${item.name}`);
+            // Navigate to update screen with contact ID and data
+            router.push({
+              pathname: '/contact-management/Updatecontact',
+              params: { id: item.id }
+            });
+          }}
+        >
+          <Ionicons name="create-outline" size={20} color="#4CAF50" />
+        </TouchableOpacity>
+        {/* Delete action button */}
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={() => {
+            console.log(`Delete contact ${item.name}`);
+            // Show confirmation before deleting
             Alert.alert(
               "Delete Contact",
               `Are you sure you want to delete ${item.name}?`,
               [
-                { text: "Cancel", style: "cancel" },
-                { 
-                  text: "Delete", 
-                  onPress: () => deleteContact(item.id),
-                  style: "destructive" 
+                {
+                  text: "Cancel",
+                  style: "cancel"
+                },
+                {
+                  text: "Delete",
+                  onPress: () => {
+                    console.log(`Confirmed delete for ${item.id}`);
+                    // Call the delete function with the contact ID
+                    deleteContact(item.id);
+                  },
+                  style: "destructive"
                 }
               ]
             );
           }}
         >
-          <Ionicons name="trash-outline" size={22} color="#FF5252" />
+          <Ionicons name="trash-outline" size={20} color="#FF5252" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
-
-  // Helper function for contact type colors
-  const getTypeColor = (type) => {
-    switch (type.toLowerCase()) {
-      case 'family': return '#FFD700';
-      case 'friends': return '#87CEEB';
-      case 'work': return '#98FB98';
-      case 'office': return '#98FB98';
-      default: return '#D3D3D3';
-    }
-  };
+  // ========== END OF CONTACT ITEM DISPLAY SECTION ==========
 
   return (
     <View style={styles.container}>
@@ -203,11 +194,8 @@ export default function AllContact() {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Contacts</Text>
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => router.push('/contact-management/addcontact')}
-        >
-          <Ionicons name="add" size={28} color="white" />
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons name="ellipsis-vertical" size={24} color="white" />
         </TouchableOpacity>
       </View>
       
@@ -220,61 +208,56 @@ export default function AllContact() {
           placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity 
+            style={styles.clearButton}
+            onPress={() => setSearchQuery('')}
+          >
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
       </View>
       
-      {/* Contact List */}
-      {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2979FF" />
+      {/* ========== CONTACT LIST DISPLAY SECTION ========== */}
+      {loading ? (
+        // Show loading indicator while fetching contacts
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Loading contacts...</Text>
         </View>
       ) : filteredContacts.length > 0 ? (
+        // Display contacts if available
         <FlatList
           data={filteredContacts}
           renderItem={renderContactItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#2979FF']}
-              tintColor="#2979FF"
-            />
-          }
         />
       ) : (
+        // Show message if no contacts found
         <View style={styles.emptyContainer}>
-          <Ionicons name="people-outline" size={60} color="#ccc" />
-          <Text style={styles.emptyTitle}>No Contacts Found</Text>
-          <Text style={styles.emptyText}>
-            {searchQuery ? 'Try a different search' : 'Add your first contact'}
-          </Text>
-          {!searchQuery && (
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => router.push('/contact-management/addcontact')}
-            >
-              <Ionicons name="add" size={20} color="white" />
-              <Text style={styles.addButtonText}>Add Contact</Text>
-            </TouchableOpacity>
-          )}
+          <Ionicons name="search" size={60} color="#ccc" />
+          <Text style={styles.emptyText}>No contacts found</Text>
         </View>
       )}
+      {/* ========== END OF CONTACT LIST DISPLAY SECTION ========== */}
+      
+      {/* Floating Action Button for adding new contacts */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => router.push('/contact-management/addcontact')}
+      >
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
 
+// Styles definition
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -301,26 +284,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'white',
     margin: 10,
-    borderRadius: 10,
+    borderRadius: 25,
     paddingHorizontal: 15,
-    height: 50,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
   },
   searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    height: '100%',
+    height: 50,
     fontSize: 16,
+  },
+  clearButton: {
+    padding: 5,
   },
   listContainer: {
     paddingHorizontal: 10,
-    paddingBottom: 20,
   },
   contactItem: {
     flexDirection: 'row',
@@ -333,13 +312,12 @@ const styles = StyleSheet.create({
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 1.5,
   },
   contactInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   avatar: {
     width: 50,
@@ -357,11 +335,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  contactTextContainer: {
-    flex: 1,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   contactName: {
     fontSize: 16,
@@ -371,17 +347,11 @@ const styles = StyleSheet.create({
   contactPhone: {
     color: '#666',
     fontSize: 14,
-    marginBottom: 5,
+    marginBottom: 3,
   },
-  typeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  typeText: {
+  contactType: {
+    color: '#999',
     fontSize: 12,
-    color: '#333',
   },
   contactActions: {
     flexDirection: 'row',
@@ -394,37 +364,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 5,
   },
+  updateButton: {
+    backgroundColor: '#E8F5E9',  // Light green background
+  },
+  deleteButton: {
+    backgroundColor: '#FFEBEE',  // Light red background
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  emptyTitle: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 10,
-    fontWeight: '500',
-  },
   emptyText: {
-    fontSize: 14,
     color: '#999',
-    marginTop: 5,
-    textAlign: 'center',
+    fontSize: 18,
+    marginTop: 10,
   },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#2979FF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    marginTop: 20,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });

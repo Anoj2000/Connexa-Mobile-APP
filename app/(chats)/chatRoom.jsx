@@ -38,6 +38,7 @@ const ChatRoom = () => {
   const API_URL = 'https://73c8-2402-4000-2270-185-8103-a401-f2d3-c729.ngrok-free.app/predict';
 
 
+
   // Get current user data
   useEffect(() => {
     const auth = FIREBASE_AUTH;
