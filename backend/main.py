@@ -36,7 +36,7 @@ app = FastAPI()
 # CORS configuration
 origins = [
     "http://localhost:8081",  # React Native development server
-    "https://2023-2402-4000-13cd-2f7e-876-a9c1-210b-63e5.ngrok-free.app"  # Ngrok URL (replace with your actual ngrok URL)
+    "https://cb89-43-250-243-125.ngrok-free.app"  # Ngrok URL (replace with your actual ngrok URL)
 ]
 
 app.add_middleware(

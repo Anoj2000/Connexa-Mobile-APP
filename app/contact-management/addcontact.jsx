@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackground, Modal, FlatList,Alert,Animated } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackground, Modal, FlatList, Alert, Animated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 
 const AddContact = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedType, setSelectedType] = useState('Select contact type');
+  const [selectedType, setSelectedType] = useState('Select group');
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Form fields
   const [name, setName] = useState('');
@@ -23,11 +25,34 @@ const AddContact = () => {
     phone: '',
     note: ''
   });
-
-  const contactTypes = ['Friends', 'Family', 'Office', 'Relations'];
   
   // Animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Fetch groups from Firestore when component mounts
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const groupsCollection = collection(FIREBASE_DB, "groups");
+        const groupSnapshot = await getDocs(groupsCollection);
+        const groupsList = groupSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+          };
+        });
+        setGroups(groupsList);
+      } catch (error) {
+        console.error("Error fetching groups: ", error);
+        Alert.alert("Error", "Failed to load groups. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, []);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -139,7 +164,6 @@ const AddContact = () => {
     }
   };
   
-
   // Run validation on field changes
   const handleNameChange = (value) => {
     setName(value);
@@ -197,6 +221,12 @@ const AddContact = () => {
       return;
     }
 
+    // Validate if a group is selected
+    if (selectedType === 'Select group') {
+      Alert.alert("Validation Error", "Please select a group for this contact");
+      return;
+    }
+
     Alert.alert(
       "Add Contact", 
       "Are you sure you want to add this contact?",
@@ -212,7 +242,7 @@ const AddContact = () => {
                 email: email,
                 phone: phone,
                 note: note,
-                type: selectedType === 'Select contact type' ? 'Other' : selectedType,
+                group: selectedType,
                 profileImage: profileImage,
                 createdAt: Timestamp.now(),
               });
@@ -310,38 +340,64 @@ const AddContact = () => {
           onChangeText={handleNoteChange}
         />
         {errors.note ? <Text style={styles.errorText}>{errors.note}</Text> : null}
-        {note ? <Text style={styles.characterCount}>{note.length}/500</Text> : null}
+        {note ? <Text style={styles.characterCount}>{note.length}/20</Text> : null}
 
-        <Text style={styles.label}>Type</Text>
-        <TouchableOpacity style={styles.dropdown} onPress={() => setModalVisible(true)}>
-          <Text style={styles.dropdownText}>{selectedType}</Text>
+        <Text style={styles.label}>Group <Text style={styles.requiredStar}>*</Text></Text>
+        <TouchableOpacity 
+          style={styles.dropdown} 
+          onPress={() => {
+            if (groups.length === 0 && !isLoading) {
+              Alert.alert("No Groups", "No groups available. Please create groups first.");
+            } else {
+              setModalVisible(true);
+            }
+          }}
+        >
+          <Text style={[styles.dropdownText, selectedType !== 'Select group' && styles.selectedText]}>
+            {selectedType}
+          </Text>
+          {isLoading && <ActivityIndicator size="small" color="#007AFF" style={styles.loadingIndicator} />}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddContact}>
+        <TouchableOpacity 
+          style={[styles.addButton, (isLoading) && styles.disabledButton]} 
+          onPress={handleAddContact}
+          disabled={isLoading}
+        >
           <Text style={styles.addButtonText}>Add Contact</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Modal for selecting contact type */}
+      {/* Modal for selecting group */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Contact Type</Text>
-            <FlatList 
-              data={contactTypes} 
-              keyExtractor={(item) => item} 
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.modalItem} 
-                  onPress={() => {
-                    setSelectedType(item);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalText}>{item}</Text>
-                </TouchableOpacity>
-              )} 
-            />
+            <Text style={styles.modalTitle}>Select Group</Text>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007AFF" />
+                <Text style={styles.loadingText}>Loading groups...</Text>
+              </View>
+            ) : groups.length === 0 ? (
+              <Text style={styles.noDataText}>No groups available</Text>
+            ) : (
+              <FlatList 
+                data={groups} 
+                keyExtractor={(item) => item.id} 
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={styles.modalItem} 
+                    onPress={() => {
+                      setSelectedType(item.name);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.modalText}>{item.name}</Text>
+                  </TouchableOpacity>
+                )} 
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            )}
             <TouchableOpacity style={styles.modalClose} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
@@ -438,9 +494,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     paddingLeft: 10, 
     marginBottom: 20, 
-    backgroundColor: '#f9f9f9' 
+    backgroundColor: '#f9f9f9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 10
   },
   dropdownText: { fontSize: 16, color: '#777' },
+  selectedText: { color: '#333', fontWeight: '500' },
   addButton: { 
     backgroundColor: '#007AFF', 
     paddingVertical: 15, 
@@ -452,14 +513,44 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
   },
+  disabledButton: {
+    backgroundColor: '#b3d1ff',
+    shadowOpacity: 0.1,
+  },
   addButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { backgroundColor: '#fff', width: 300, padding: 20, borderRadius: 10 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
-  modalItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#ddd' },
-  modalText: { fontSize: 18, color: '#333' },
+  modalContent: { backgroundColor: '#fff', width: 300, padding: 20, borderRadius: 10, maxHeight: 400 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  modalItem: { padding: 12, borderBottomWidth: 0 },
+  modalText: { fontSize: 16, color: '#333' },
   modalClose: { marginTop: 10, alignItems: 'center', paddingVertical: 10 },
-  modalCloseText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' }
+  modalCloseText: { fontSize: 16, color: '#007AFF', fontWeight: 'bold' },
+  loadingContainer: { 
+    padding: 20, 
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  loadingText: { 
+    textAlign: 'center', 
+    padding: 10, 
+    fontSize: 16, 
+    color: '#666'
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    right: 15
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 2
+  },
+  noDataText: {
+    textAlign: 'center',
+    padding: 20,
+    fontSize: 16,
+    color: '#666'
+  }
 });
 
 export default AddContact;
