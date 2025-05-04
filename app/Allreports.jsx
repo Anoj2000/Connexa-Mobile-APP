@@ -5,19 +5,14 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ContactReport from './contact _report/Contact_report';
 import FollowUp_Report from './followup_report/FollowUp_Report';
+import LogsReportScreen from './interaction-tracking-system/logsReport'
 
 export default function Allreports() {
   const [activeTab, setActiveTab] = useState('contact');
+  
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerRight} />
-      </View>
 
       {/* Report Type Tab - Now with 4 tabs */}
       <ScrollView 
@@ -62,9 +57,9 @@ export default function Allreports() {
 
         {activeTab === 'interaction' && (
           <View style={styles.reportSection}>
-            <Text style={styles.sectionTitle}>Interaction Statistics</Text>
+            <Text style={styles.sectionTitle}>Interaction Activity Report</Text>
             <View style={styles.placeholder}>
-              <Text>Interaction reports will be displayed here</Text>
+              <LogsReportScreen/>
             </View>
           </View>
         )}
@@ -96,26 +91,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#2979FF',
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 15,
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerRight: {
-    width: 30, // For alignment
   },
   tabContainerScroll: {
     paddingHorizontal: 10,
