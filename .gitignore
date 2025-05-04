@@ -47,5 +47,5 @@ app-example
 /backend/venv
 
 #pycache
-__pycache__/
+/backend/__pycache__/
 
