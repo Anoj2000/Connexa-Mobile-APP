@@ -241,16 +241,6 @@ const LogsReportScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()} 
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Logs Report</Text>
-      </View>
-      
       <View style={styles.content}>
         <View style={styles.filterSection}>
           <Text style={styles.filterTitle}>Select Period</Text>
@@ -353,23 +343,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2979FF',
-    paddingTop: 20,
-    paddingBottom: 15,
-    paddingHorizontal: 15,
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    paddingHorizontal: 105,
   },
   content: {
     flex: 1,
