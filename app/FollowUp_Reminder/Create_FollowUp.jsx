@@ -33,10 +33,22 @@ const Create_FollowUp = () => {
   };
 
   const handleCreate = async () => {
-    if (!task || !dueDate || !assignedTo) {
-      return Alert.alert('Missing Fields', 'Please fill in all required fields.');
+    if (!contact.trim()) {
+      return Alert.alert('Validation Error', 'Please enter a contact or organization.');
     }
-
+    if (!task.trim()) {
+      return Alert.alert('Validation Error', 'Please enter a follow-up task.');
+    }
+    if (!dueDate) {
+      return Alert.alert('Validation Error', 'Please select a due date.');
+    }
+    if (!assignedTo.trim()) {
+      return Alert.alert('Validation Error', 'Please enter who the task is assigned to.');
+    }
+    if (!priority) {
+      return Alert.alert('Validation Error', 'Please select a priority level.');
+    }
+  
     try {
       await addDoc(collection(FIREBASE_DB, 'reminders'), {
         contact,
@@ -45,7 +57,7 @@ const Create_FollowUp = () => {
         assignedTo,
         status: priority,
       });
-
+  
       Alert.alert('Success ✅', 'Reminder created successfully!', [
         {
           text: 'OK',
@@ -57,6 +69,7 @@ const Create_FollowUp = () => {
       Alert.alert('Error ❌', 'Failed to create reminder.');
     }
   };
+  
 
   return (
     <ImageBackground

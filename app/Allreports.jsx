@@ -4,6 +4,7 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ContactReport from './contact _report/Contact_report';
+import FollowUp_Report from './followup_report/FollowUp_Report';
 import LogsReportScreen from './interaction-tracking-system/logsReport'
 
 export default function Allreports() {
@@ -63,12 +64,10 @@ export default function Allreports() {
           </View>
         )}
 
-        {activeTab === 'followup' && (
+{activeTab === 'followup' && (
           <View style={styles.reportSection}>
             <Text style={styles.sectionTitle}>Follow-up Statistics</Text>
-            <View style={styles.placeholder}>
-              <Text>Follow-up reports will be displayed here</Text>
-            </View>
+            <FollowUp_Report />
           </View>
         )}
 

@@ -14,22 +14,20 @@ export default function Login() {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const router = useRouter();
 
-  // Effect to navigate to home page after success popup
   useEffect(() => {
     let timer;
     if (showSuccessPopup) {
       timer = setTimeout(() => {
         setShowSuccessPopup(false);
         navigateToHome();
-      }, 2000); // Show popup for 2 seconds
+      }, 2000);
     }
-    
     return () => clearTimeout(timer);
   }, [showSuccessPopup]);
 
   const navigateToHome = () => {
     try {
-      router.push('/');  // Navigate to home page
+      router.push('/');
     } catch (err) {
       console.error("Navigation error:", err);
     }
@@ -37,40 +35,38 @@ export default function Login() {
 
   const handleLogin = async () => {
     setError('');
-    
-    // Validate inputs
+
+    // Input validation
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
-    
+
+    if (!email.endsWith('@gmail.com')) {
+      setError('Email must be a @gmail.com address');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Sign in with Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
       const user = userCredential.user;
-      
-      // Fetch additional user data from Firestore
+
       try {
         const userDocRef = doc(FIREBASE_DB, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (userDoc.exists()) {
-          // Store user data in AsyncStorage for use across the app
           const userData = userDoc.data();
-          // Store essential user data for use across the app
           const userToStore = {
             uid: user.uid,
             email: user.email,
             phoneNumber: userData.phoneNumber,
             displayName: userData.displayName || user.displayName
           };
-          
-          // Save to AsyncStorage
+
           await AsyncStorage.setItem('currentUser', JSON.stringify(userToStore));
         } else {
-          console.log("No additional user data found in Firestore");
-          // Store basic auth data
           await AsyncStorage.setItem('currentUser', JSON.stringify({
             uid: user.uid,
             email: user.email
@@ -79,8 +75,7 @@ export default function Login() {
       } catch (firestoreError) {
         console.error("Error fetching user data:", firestoreError);
       }
-      
-      // On successful login
+
       setLoading(false);
       setShowSuccessPopup(true);
     } catch (err) {
@@ -89,7 +84,6 @@ export default function Login() {
     }
   };
 
-  // Convert Firebase error codes to user-friendly messages
   const getUserFriendlyError = (errorCode) => {
     switch (errorCode) {
       case 'auth/invalid-email':
@@ -99,7 +93,7 @@ export default function Login() {
       case 'auth/user-not-found':
         return 'No account found with this email';
       case 'auth/wrong-password':
-        return 'Incorrect password';
+        return 'Incorrect password for this email';
       default:
         return 'Login failed. Please try again';
     }
@@ -117,9 +111,9 @@ export default function Login() {
     <View style={styles.container}>
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.subtitle}>Enter your credentials to continue</Text>
-      
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -128,7 +122,7 @@ export default function Login() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -136,9 +130,9 @@ export default function Login() {
         onChangeText={setPassword}
         secureTextEntry
       />
-      
-      <TouchableOpacity 
-        style={styles.loginButton} 
+
+      <TouchableOpacity
+        style={styles.loginButton}
         onPress={handleLogin}
         disabled={loading}
       >
@@ -148,12 +142,11 @@ export default function Login() {
           <Text style={styles.buttonText}>LOG IN</Text>
         )}
       </TouchableOpacity>
-      
+
       <TouchableOpacity onPress={handleSignUpRedirect}>
         <Text style={styles.signUpText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
 
-      {/* Success Popup Modal */}
       <Modal
         transparent={true}
         visible={showSuccessPopup}
