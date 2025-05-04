@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import {
   StyleSheet,
   Text,
@@ -34,6 +35,8 @@ const ChatRoom = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [recipientData, setRecipientData] = useState(null);
   const flatListRef = useRef(null);
+  const API_URL = 'https://cb89-43-250-243-125.ngrok-free.app/predict';
+
 
   // Get current user data
   useEffect(() => {
@@ -175,10 +178,29 @@ const ChatRoom = () => {
       };
       
       await set(newMessageRef, messageData);
-      setInputMessage('');
+
+      // Send the message to the FastAPI backend for emotion prediction
+      const response = await axios.post(API_URL, {
+        text: inputMessage.trim()
+      });
+
+      // Get the predicted emotion from the response
+      const emotion = response.data;
+
+      // Update the message with the predicted emotion
+      const emotionData = {
+        ...messageData,
+        emotion: emotion
+      };
+
+    // Update the message in Firebase with emotion
+      await set(newMessageRef, emotionData);
+        setInputMessage('');
+  
       
       const lastMessageData = {
         text: inputMessage.trim(),
+        emotion: emotion,
         timestamp: timestamp,
         senderId: currentUser.uid
       };
@@ -239,6 +261,12 @@ const ChatRoom = () => {
           isCurrentUser ? styles.sentMessageBubble : styles.receivedMessageBubble
         ]}>
           <Text style={styles.messageText}>{item.text}</Text>
+
+        {/* Display emotion */}
+        {item.emotion && (
+          <Text style={styles.messageEmotion}>{`${item.emotion}`}</Text>
+        )}
+
           <Text style={[
             styles.messageTime,
             isCurrentUser ? styles.sentMessageTime : styles.receivedMessageTime

@@ -1,49 +1,328 @@
 //update
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  SafeAreaView,
-  TouchableOpacity,
-  ActivityIndicator,
-  FlatList,
-  Alert
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Modal, 
+  Animated, 
+  Vibration,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
-import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
-export default function Notifications() {
-  const [reminders, setReminders] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Configure notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
+const ReminderNotification = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [visible, setVisible] = useState(false);
+  const [currentNotification, setCurrentNotification] = useState(null);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+
+  // Register for push notifications
   useEffect(() => {
-    fetchReminders();
+    const setupNotifications = async () => {
+      await registerForPushNotificationsAsync();
+      
+      // Listen for incoming notifications
+      const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+        console.log("Notification received:", notification);
+        // Process incoming notification
+        const reminderData = notification.request.content.data;
+        if (reminderData) {
+          addNotification(reminderData);
+        }
+      });
+
+      // Listen for notification responses
+      const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+        console.log("Notification response:", response);
+        // Handle notification tap
+        const reminderData = response.notification.request.content.data;
+        if (reminderData) {
+          showNotificationModal(reminderData);
+        }
+      });
+
+      return () => {
+        Notifications.removeNotificationSubscription(notificationListener);
+        Notifications.removeNotificationSubscription(responseListener);
+      };
+    };
+
+    setupNotifications();
   }, []);
 
-  const fetchReminders = async () => {
-    try {
-      setLoading(true);
-      const remindersRef = collection(FIREBASE_DB, "reminders");
-      const querySnapshot = await getDocs(remindersRef);
-      
-      const remindersData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        reminderDate: doc.data().reminderDate?.toDate() || new Date()
-      }));
-      
-      // Sort reminders by date (most urgent first)
-      remindersData.sort((a, b) => a.reminderDate - b.reminderDate);
+  // Check for due reminders periodically
+  useEffect(() => {
+    const checkDueReminders = async () => {
+      try {
+        console.log("Checking for due reminders...");
+        const now = new Date();
+        const remindersRef = collection(FIREBASE_DB, "reminders");
+        
+        // Query for pending reminders
+        const q = query(remindersRef, where("status", "==", "pending"));
+        const querySnapshot = await getDocs(q);
+        
+        console.log(`Found ${querySnapshot.size} pending reminders`);
+        
+        const dueReminders = querySnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            reminderDate: doc.data().reminderDate?.toDate ? doc.data().reminderDate.toDate() : new Date(doc.data().reminderDate)
+          }))
+          .filter(reminder => {
+            // Check if reminder is due (within the last 5 minutes to now)
+            const reminderTime = reminder.reminderDate.getTime();
+            const fiveMinutesAgo = now.getTime() - (5 * 60 * 1000);
+            const isDue = reminderTime >= fiveMinutesAgo && reminderTime <= now.getTime();
+            console.log(`Reminder ${reminder.id}: ${reminder.title}, Time: ${reminder.reminderDate}, Is Due: ${isDue}`);
+            return isDue;
+          });
+        
+        console.log(`Found ${dueReminders.length} due reminders`);
+        
+        // Schedule notifications for due reminders
+        for (const reminder of dueReminders) {
+          console.log(`Processing due reminder: ${reminder.id} - ${reminder.title}`);
+          
+          // Update reminder status to triggered
+          try {
+            await updateDoc(doc(FIREBASE_DB, "reminders", reminder.id), {
+              status: "triggered",
+              triggeredAt: Timestamp.now()
+            });
+            console.log(`Updated reminder ${reminder.id} status to triggered`);
+          } catch (error) {
+            console.error(`Error updating reminder status: ${error}`);
+          }
+          
+          await scheduleNotification(reminder);
+          addNotification(reminder);
+        }
+      } catch (error) {
+        console.error("Error checking due reminders:", error);
+      }
+    };
 
-      setReminders(remindersData);
-      setLoading(false);
+    // Check immediately when component mounts
+    checkDueReminders();
+    
+    // Then check every 30 seconds
+    const intervalId = setInterval(checkDueReminders, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Load existing notifications when component mounts
+  useEffect(() => {
+    const loadTriggeredReminders = async () => {
+      try {
+        const remindersRef = collection(FIREBASE_DB, "reminders");
+        const q = query(remindersRef, where("status", "==", "triggered"));
+        const querySnapshot = await getDocs(q);
+        
+        const triggeredReminders = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          reminderDate: doc.data().reminderDate?.toDate ? doc.data().reminderDate.toDate() : new Date(doc.data().reminderDate)
+        }));
+        
+        console.log(`Found ${triggeredReminders.length} triggered reminders to show`);
+        
+        // Add all triggered reminders to notifications state
+        setNotifications(triggeredReminders);
+        
+        // If there are triggered reminders and no modal is showing, show the first one
+        if (triggeredReminders.length > 0 && !visible) {
+          showNotificationModal(triggeredReminders[0]);
+        }
+      } catch (error) {
+        console.error("Error loading triggered reminders:", error);
+      }
+    };
+    
+    loadTriggeredReminders();
+  }, []);
+
+  // Register for push notifications
+  const registerForPushNotificationsAsync = async () => {
+    console.log("Registering for push notifications...");
+    
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('reminders', {
+        name: 'Reminders',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#2979FF',
+      });
+    }
+
+    if (Constants.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return;
+      }
+      
+      console.log('Push notification permissions granted');
+    } else {
+      console.log('Must use physical device for Push Notifications');
+    }
+  };
+
+  // Schedule push notification
+  const scheduleNotification = async (reminder) => {
+    try {
+      console.log(`Scheduling notification for reminder: ${reminder.id}`);
+      
+      const title = reminder.title || `Reminder for ${reminder.contactName}`;
+      const body = reminder.note || 'Time for your scheduled reminder';
+      
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: reminder,
+        },
+        trigger: null, // Send immediately
+      });
+      
+      console.log(`Notification scheduled with ID: ${notificationId}`);
+      return notificationId;
     } catch (error) {
-      console.error("Error fetching reminders:", error);
-      Alert.alert("Error", "Failed to load notifications");
-      setLoading(false);
+      console.error("Error scheduling notification:", error);
+    }
+  };
+
+  // Add notification to local state
+  const addNotification = (notification) => {
+    console.log(`Adding notification to state: ${notification.id} - ${notification.title}`);
+    
+    setNotifications(prevNotifications => {
+      // Check if this notification already exists
+      const exists = prevNotifications.some(n => n.id === notification.id);
+      if (!exists) {
+        // Add new notification and vibrate
+        Vibration.vibrate();
+        
+        // If no modal is currently showing, show this notification
+        if (!visible) {
+          showNotificationModal(notification);
+        }
+        
+        return [...prevNotifications, notification];
+      }
+      return prevNotifications;
+    });
+  };
+
+  // Show notification in modal
+  const showNotificationModal = (notification) => {
+    console.log(`Showing modal for notification: ${notification.id} - ${notification.title}`);
+    
+    setCurrentNotification(notification);
+    setVisible(true);
+    
+    // Animate the modal
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Close notification modal
+  const closeModal = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisible(false);
+      setCurrentNotification(null);
+      
+      // If there are other notifications, show the next one
+      setTimeout(() => {
+        if (notifications.length > 1) {
+          const nextNotification = notifications.find(n => n.id !== currentNotification?.id);
+          if (nextNotification) {
+            showNotificationModal(nextNotification);
+          }
+        }
+      }, 300);
+    });
+  };
+
+  // Mark reminder as completed
+  const markAsCompleted = async () => {
+    if (!currentNotification) return;
+    
+    try {
+      console.log(`Marking reminder as completed: ${currentNotification.id}`);
+      
+      await deleteDoc(doc(FIREBASE_DB, "reminders", currentNotification.id));
+      
+      // Remove from local state
+      setNotifications(prevNotifications => 
+        prevNotifications.filter(n => n.id !== currentNotification.id)
+      );
+      
+      closeModal();
+    } catch (error) {
+      console.error("Error completing reminder:", error);
+    }
+  };
+
+  // Snooze reminder (reschedule for 15 minutes later)
+  const snoozeReminder = async () => {
+    if (!currentNotification) return;
+    
+    try {
+      console.log(`Snoozing reminder: ${currentNotification.id}`);
+      
+      // Calculate new reminder time (15 minutes from now)
+      const snoozeTime = new Date();
+      snoozeTime.setMinutes(snoozeTime.getMinutes() + 15);
+      
+      // Update the reminder in Firestore
+      const reminderRef = doc(FIREBASE_DB, "reminders", currentNotification.id);
+      await updateDoc(reminderRef, {
+        reminderDate: Timestamp.fromDate(snoozeTime),
+        status: "pending" // Reset status to pending so it will trigger again
+      });
+      
+      console.log(`Reminder snoozed until: ${snoozeTime}`);
+      
+      // Remove current notification from local state
+      setNotifications(prevNotifications => 
+        prevNotifications.filter(n => n.id !== currentNotification.id)
+      );
+      
+      closeModal();
+    } catch (error) {
+      console.error("Error snoozing reminder:", error);
     }
   };
 
@@ -54,393 +333,269 @@ export default function Notifications() {
   };
   
   // Format time from date object
-  const formatTimeFromDate = (date) => {
+  const formatTime = (date) => {
     if (!date) return '';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Get relative time description
-  const getRelativeTimeDescription = (date) => {
-    const now = new Date();
-    const diff = date - now;
-    const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(diff / (1000 * 60 * 60));
-    const diffMinutes = Math.floor(diff / (1000 * 60));
-    
-    if (diff < 0) {
-      return "Past due";
-    } else if (diffDays > 0) {
-      return `In ${diffDays} day${diffDays > 1 ? 's' : ''}`;
-    } else if (diffHours > 0) {
-      return `In ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
-    } else if (diffMinutes > 0) {
-      return `In ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
-    } else {
-      return "Just now";
-    }
-  };
-
-  // Handle dismiss notification
-  const dismissNotification = async (reminderItem) => {
-    try {
-      await deleteDoc(doc(FIREBASE_DB, "reminders", reminderItem.id));
-      setReminders(reminders.filter(item => item.id !== reminderItem.id));
-      Alert.alert("Success", "Notification dismissed");
-    } catch (error) {
-      console.error("Error dismissing notification:", error);
-      Alert.alert("Error", "Failed to dismiss notification");
-    }
-  };
-
-  // Handle mark as done
-  const markAsDone = async (reminderItem) => {
-    try {
-      await deleteDoc(doc(FIREBASE_DB, "reminders", reminderItem.id));
-      setReminders(reminders.filter(item => item.id !== reminderItem.id));
-      Alert.alert("Success", "Reminder marked as completed");
-    } catch (error) {
-      console.error("Error completing reminder:", error);
-      Alert.alert("Error", "Failed to complete reminder");
-    }
-  };
-
-  // View associated interaction
-  const viewInteraction = (reminderItem) => {
-    // This would navigate to the interaction details
-    // For now, just show details in an alert
-    Alert.alert(
-      "Interaction Details",
-      `Contact: ${reminderItem.contactName}\nNote: ${reminderItem.note || 'No notes'}\nType: ${reminderItem.interactionType || 'N/A'}`
-    );
-  };
-
-  // Render each notification item
-  const renderNotification = ({ item }) => {
-    const isPastDue = new Date(item.reminderDate) < new Date();
-    const timeDescription = getRelativeTimeDescription(item.reminderDate);
-    
-    return (
-      <View style={styles.notificationCard}>
-        <View style={styles.notificationHeader}>
-          <View style={[styles.statusIndicator, 
-            isPastDue ? styles.statusPastDue : styles.statusUpcoming
-          ]} />
-          <Text style={styles.timeDescription}>{timeDescription}</Text>
-        </View>
-        
-        <Text style={styles.notificationTitle}>{item.title}</Text>
-        {item.note ? <Text style={styles.notificationNote}>{item.note}</Text> : null}
-        
-        <View style={styles.notificationMeta}>
-          <View style={styles.contactBadge}>
-            <Text style={styles.contactInitial}>
-              {item.contactName ? item.contactName.charAt(0).toUpperCase() : 'C'}
-            </Text>
-            <Text style={styles.contactName}>{item.contactName}</Text>
-          </View>
-          
-          <View style={[
-            styles.typeBadge,
-            { 
-              backgroundColor: 
-                item.interactionType === 'Email' ? '#E8F5E9' : 
-                item.interactionType === 'Message' ? '#E3F2FD' : '#F5F5F5'
-            }
-          ]}>
-            <Text style={[
-              styles.typeText,
-              { 
-                color: 
-                  item.interactionType === 'Email' ? '#4CAF50' : 
-                  item.interactionType === 'Message' ? '#2196F3' : '#9E9E9E'
-              }
-            ]}>
-              {item.interactionType || 'Interaction'}
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={styles.scheduledTime}>
-          Scheduled for {formatDate(item.reminderDate)} at {formatTimeFromDate(item.reminderDate)}
-        </Text>
-        
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.viewButton]}
-            onPress={() => viewInteraction(item)}
-          >
-            <Ionicons name="eye-outline" size={18} color="#4A90E2" />
-            <Text style={[styles.actionButtonText, styles.viewButtonText]}>View</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.completeButton]}
-            onPress={() => markAsDone(item)}
-          >
-            <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
-            <Text style={[styles.actionButtonText, styles.completeButtonText]}>Complete</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.dismissButton]}
-            onPress={() => dismissNotification(item)}
-          >
-            <Ionicons name="close-circle-outline" size={18} color="#FF5252" />
-            <Text style={[styles.actionButtonText, styles.dismissButtonText]}>Dismiss</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity 
-          style={styles.refreshButton}
-          onPress={fetchReminders}
+    <>
+      {/* Floating indicator for active notifications */}
+      {notifications.length > 0 && !visible && (
+        <TouchableOpacity
+          style={styles.notificationIndicator}
+          onPress={() => {
+            // Show the first notification in the list
+            if (notifications.length > 0) {
+              showNotificationModal(notifications[0]);
+            }
+          }}
         >
-          <Ionicons name="refresh" size={22} color="white" />
+          <View style={styles.indicatorBadge}>
+            <Text style={styles.indicatorBadgeText}>{notifications.length}</Text>
+          </View>
+          <Ionicons name="notifications" size={24} color="white" />
         </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4A90E2" />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
-        </View>
-      ) : reminders.length > 0 ? (
-        <FlatList
-          data={reminders}
-          renderItem={renderNotification}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={70} color="#BDBDBD" />
-          <Text style={styles.emptyTitle}>No Notifications</Text>
-          <Text style={styles.emptyText}>
-            You don't have any reminders or notifications at the moment
-          </Text>
-         
-        </View>
       )}
-    </SafeAreaView>
+
+      {/* Notification Modal */}
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              { opacity: fadeAnim, transform: [{ scale: fadeAnim }] }
+            ]}
+          >
+            {currentNotification && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={[
+                    styles.reminderType,
+                    { 
+                      backgroundColor: 
+                        currentNotification.interactionType === 'Email' ? '#E8F5E9' : 
+                        currentNotification.interactionType === 'Message' ? '#E3F2FD' : '#F5F5F5'
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.reminderTypeText,
+                      { 
+                        color: 
+                          currentNotification.interactionType === 'Email' ? '#4CAF50' : 
+                          currentNotification.interactionType === 'Message' ? '#2196F3' : '#9E9E9E'
+                      }
+                    ]}>
+                      {currentNotification.interactionType || 'Reminder'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalBody}>
+                  <Text style={styles.reminderTitle}>{currentNotification.title}</Text>
+                  
+                  <View style={styles.contactInfo}>
+                    <Ionicons name="person" size={18} color="#2979FF" style={styles.infoIcon} />
+                    <Text style={styles.contactName}>{currentNotification.contactName || 'Unknown'}</Text>
+                  </View>
+
+                  {currentNotification.note && (
+                    <View style={styles.noteContainer}>
+                      <Text style={styles.noteText}>{currentNotification.note}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.timeInfo}>
+                    <Ionicons name="time" size={18} color="#FF9800" style={styles.infoIcon} />
+                    <Text style={styles.timeText}>
+                      {formatDate(currentNotification.reminderDate)} at {formatTime(currentNotification.reminderDate)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity 
+                    style={styles.snoozeButton}
+                    onPress={snoozeReminder}
+                  >
+                    <Ionicons name="time-outline" size={20} color="#2979FF" />
+                    <Text style={styles.snoozeButtonText}>Snooze 15m</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.completeButton}
+                    onPress={markAsCompleted}
+                  >
+                    <Ionicons name="checkmark" size={20} color="white" />
+                    <Text style={styles.completeButtonText}>Mark Complete</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
+    </>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-
-    backgroundColor: '#F5F7FA',
-
-    backgroundColor: '#f8f8f8',
-
+  notificationIndicator: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#2979FF',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 999,
   },
-  header: {
+  indicatorBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF5252',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  indicatorBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: '85%',
+    maxWidth: 400,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-
-    backgroundColor: '#4A90E2',
-    paddingTop: 30,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-
-    backgroundColor: '#2979FF',
-    paddingVertical: 15,
     paddingHorizontal: 15,
-
+    paddingTop: 15,
   },
-  headerTitle: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  refreshButton: {
+  closeButton: {
     padding: 5,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+  modalBody: {
+    padding: 15,
   },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: '#4A90E2',
-    fontWeight: '500',
+  reminderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
   },
-  listContainer: {
-    padding: 16,
-  },
-  notificationCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  notificationHeader: {
+  contactInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  infoIcon: {
     marginRight: 8,
   },
-  statusUpcoming: {
-    backgroundColor: '#4A90E2',
-  },
-  statusPastDue: {
-    backgroundColor: '#FF5252',
-  },
-  timeDescription: {
-    fontSize: 13,
-    color: '#757575',
-    fontWeight: '500',
-  },
-  notificationTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  notificationNote: {
-    fontSize: 15,
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  notificationMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  contactBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  contactInitial: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#4A90E2',
-    color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: 6,
-  },
   contactName: {
+    fontSize: 16,
+    color: '#333',
+  },
+  noteContainer: {
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 6,
+    marginVertical: 10,
+  },
+  noteText: {
     fontSize: 14,
-    color: '#555',
-    fontWeight: '500',
+    color: '#666',
   },
-  typeBadge: {
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  reminderType: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 5,
+    borderRadius: 15,
   },
-  typeText: {
+  reminderTypeText: {
     fontSize: 12,
     fontWeight: '500',
   },
-  scheduledTime: {
-    fontSize: 13,
-    color: '#9E9E9E',
-    marginBottom: 16,
-  },
-  actionButtons: {
+  modalFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 12,
+    borderTopColor: '#eee',
+    padding: 15,
   },
-  actionButton: {
+  snoozeButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#2979FF',
+    borderRadius: 5,
   },
-  actionButtonText: {
+  snoozeButtonText: {
+    color: '#2979FF',
     marginLeft: 5,
     fontWeight: '500',
-    fontSize: 14,
-  },
-  viewButton: {
-    backgroundColor: '#F0F7FF',
-  },
-  viewButtonText: {
-    color: '#4A90E2',
   },
   completeButton: {
-    backgroundColor: '#E8F5E9',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#4CAF50',
+    borderRadius: 5,
   },
   completeButtonText: {
-    color: '#4CAF50',
-  },
-  dismissButton: {
-    backgroundColor: '#FFEBEE',
-  },
-  dismissButtonText: {
-    color: '#FF5252',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#424242',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#757575',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  createButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  createButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    marginLeft: 5,
+    fontWeight: '500',
   },
 });
+
+export default ReminderNotification;

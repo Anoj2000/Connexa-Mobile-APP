@@ -113,7 +113,7 @@ export default function AllContact() {
       onPress={() => {
         // Navigate to contact details (you can implement this later)
         console.log(`View details for ${item.name}`);
-        // Example: router.push(`/contact-details/${item.id}`);
+        // Example: router.push(/contact-details/${item.id});
       }}
     >
       <View style={styles.contactInfo}>

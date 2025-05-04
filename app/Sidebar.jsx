@@ -11,8 +11,9 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: '☎️', title: 'All Contacts', screen: 'contact-management/Allcontact' },
+    { icon: '📊', title: 'All Reports', screen: 'Allreports' }, // Updated path
     { icon: '🔄', title: 'Contact Interaction', screen: 'interaction-tracking-system/readLog' },
-    { icon: '👥', title: 'Share & collabarotion', screen: 'Sharing&Collaboration/groups' },
+    { icon: '👥', title: 'Share & Collaboration', screen: 'Sharing&Collaboration/groups' },
     { icon: '⭐', title: 'FollowUp Reminder', screen: 'FollowUp_Reminder/FollowUp_Page' },
   ];
 
@@ -47,6 +48,7 @@ export default function Sidebar() {
 
   const navigateToProfile = () => {
     router.push('/profile');
+
   };
 
   const handleLogout = async () => {
@@ -56,6 +58,8 @@ export default function Sidebar() {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+
+
   };
 
   if (loading) {

@@ -43,4 +43,6 @@ app-example
 #dataset.csv
 *.csv
 
+#Libraries
+/backend/venv
 
