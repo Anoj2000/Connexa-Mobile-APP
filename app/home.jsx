@@ -309,19 +309,7 @@ const Home = () => {
                 </View>
                 <Text style={styles.optionText}>ADD INTERACTION</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.optionButton}
-                onPress={() => {
-                  setModalVisible(false);
-                  // Navigate to add contact group screen
-                  // router.push('/contact-management/addcontactgroup');
-                }}
-              >
-                <View style={styles.optionIconContainer}>
-                  <Text style={styles.optionIcon}>👥</Text>
-                </View>
-                <Text style={styles.optionText}>ADD CONTACT GROUP</Text>
-              </TouchableOpacity>
+              
             </View>
             
             <TouchableOpacity 
