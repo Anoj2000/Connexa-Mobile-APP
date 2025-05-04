@@ -46,3 +46,6 @@ app-example
 #Libraries
 /backend/venv
 
+#pycache
+/backend/__pycache__/
+

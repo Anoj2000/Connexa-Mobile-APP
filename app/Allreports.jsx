@@ -4,9 +4,11 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-nati
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ContactReport from './contact _report/Contact_report';
+import LogsReportScreen from './interaction-tracking-system/logsReport'
 
 export default function Allreports() {
   const [activeTab, setActiveTab] = useState('contact');
+  
 
   return (
     <View style={styles.container}>
@@ -63,7 +65,7 @@ export default function Allreports() {
           <View style={styles.reportSection}>
             <Text style={styles.sectionTitle}>Interaction Statistics</Text>
             <View style={styles.placeholder}>
-              <Text>Interaction reports will be displayed here</Text>
+              <LogsReportScreen/>
             </View>
           </View>
         )}

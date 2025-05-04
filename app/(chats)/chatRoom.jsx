@@ -35,7 +35,8 @@ const ChatRoom = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [recipientData, setRecipientData] = useState(null);
   const flatListRef = useRef(null);
-  const API_URL = 'https://cb89-43-250-243-125.ngrok-free.app/predict';
+  const API_URL = 'https://73c8-2402-4000-2270-185-8103-a401-f2d3-c729.ngrok-free.app/predict';
+
 
 
   // Get current user data
@@ -262,9 +263,9 @@ const ChatRoom = () => {
         ]}>
           <Text style={styles.messageText}>{item.text}</Text>
 
-        {/* Display emotion */}
-        {item.emotion && (
-          <Text style={styles.messageEmotion}>{`${item.emotion}`}</Text>
+      {/* Display emotion only for messages received from other users */}
+          {!isCurrentUser && item.emotion && (
+        <Text style={styles.messageEmotion}>{item.emotion}</Text>
         )}
 
           <Text style={[

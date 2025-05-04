@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { FIREBASE_DB } from '../../firebaseConfig';
 import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -171,7 +171,7 @@ const ReminderNotification = () => {
       });
     }
 
-    if (Constants.isDevice) {
+    if (Device.isDevice) {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -191,7 +191,7 @@ const ReminderNotification = () => {
     }
   };
 
-  // Schedule push notification
+  // Schedule push notification - Using local notifications instead of push
   const scheduleNotification = async (reminder) => {
     try {
       console.log(`Scheduling notification for reminder: ${reminder.id}`);
