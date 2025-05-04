@@ -1,8 +1,7 @@
-import { Text } from 'react-native'; 
 import React from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useColorScheme } from 'react-native';
+
 
 // Import your screen components - ensure these are the correct imports
 import HomeTabScreen from '../home';
@@ -42,7 +41,7 @@ export default function TabLayout() {
           title: 'Chat',
           tabBarIcon: ({ color, size, focused }) => (
             <AntDesign 
-              name={focused ? 'message1' : 'wechat'} 
+              name={focused ? 'chat' : 'chat-outline'} 
               size={size} 
               color={color} 
             />
