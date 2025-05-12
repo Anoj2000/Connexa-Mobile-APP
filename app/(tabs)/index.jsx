@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { FIREBASE_AUTH } from '../../firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 
+
 export default function IndexScreen() {
   const router = useRouter();
   const [user, setUser] = useState(null);
