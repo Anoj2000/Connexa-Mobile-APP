@@ -1,20 +1,23 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
     "jsx": "react-jsx",
-
+    "baseUrl": ".",
     "paths": {
-      "@/": ["./"]
+      "@/*": ["./*"]
     }
   },
   "include": [
-    "/*.ts",
-    "/*.tsx",
-    "/*.jsx",
-    ".expo/types//*.ts",
-    "expo-env.d.ts",
-    "app/(tabs)/index.jsx",
-    ".expo/types/**/*.ts"
+    "**/*.js",
+    "**/*.jsx",
+    "app/(tabs)/index.jsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "venv",
+    "**/*.ts",
+    "**/*.tsx"
   ]
 }
