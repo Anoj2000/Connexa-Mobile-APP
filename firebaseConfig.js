@@ -1,35 +1,76 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+
+// app/firebaseConfig.js
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth"; // ✅ use getAuth instead of initializeAuth
+import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database"; // ✅ import for Realtime Database
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
   FIREBASE_PROJECT_ID,
   FIREBASE_STORAGE_BUCKET,
   FIREBASE_MESSAGING_SENDER_ID,
-  FIREBASE_APP_ID
-} from './config';
+  FIREBASE_APP_ID,
+  FIREBASE_DATABASE_URL, // ✅ Add this to your config.js
+} from "./config";
 
-// Your web app's Firebase configuration
+// ✅ Firebase configuration object
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
   authDomain: FIREBASE_AUTH_DOMAIN,
   projectId: FIREBASE_PROJECT_ID,
   storageBucket: FIREBASE_STORAGE_BUCKET,
   messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
-  appId: FIREBASE_APP_ID
+  appId: FIREBASE_APP_ID,
+  databaseURL: FIREBASE_DATABASE_URL, // ✅ Required for Realtime Database
 };
 
-// Initialize Firebase
-const FIREBASE_APP = initializeApp(firebaseConfig);
-const FIREBASE_AUTH = initializeAuth(FIREBASE_APP, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+// ✅ Initialize Firebase App (safe check for multi-inits)
+let FIREBASE_APP;
+try {
+  FIREBASE_APP = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  console.log("✅ Firebase App initialized.");
+} catch (error) {
+  console.error("❌ Firebase initialization failed:", error);
+}
+
+// ✅ Initialize Auth (no persistence needed manually)
+let FIREBASE_AUTH;
+try {
+  FIREBASE_AUTH = getAuth(FIREBASE_APP); // ✅ Just getAuth
+  console.log("✅ Firebase Auth initialized.");
+} catch (error) {
+  console.error("❌ Firebase Auth initialization failed:", error);
+}
+
+// ✅ Initialize Firestore
+let FIREBASE_DB;
+try {
+  FIREBASE_DB = getFirestore(FIREBASE_APP);
+  console.log("✅ Firestore initialized.");
+} catch (error) {
+  console.error("❌ Firestore initialization failed:", error);
+}
+
+// ✅ Initialize Realtime Database
+let FIREBASE_RTDB;
+try {
+  FIREBASE_RTDB = getDatabase(FIREBASE_APP);
+  console.log("✅ Realtime Database initialized.");
+} catch (error) {
+  console.error("❌ Realtime Database initialization failed:", error);
+}
+
+// ✅ Log Firebase connection status
+console.log("🔎 Firebase Services Status:", {
+  appInitialized: !!FIREBASE_APP,
+  firestoreReady: !!FIREBASE_DB,
+  realtimeDBReady: !!FIREBASE_RTDB,
+  authReady: !!FIREBASE_AUTH,
 });
-const FIREBASE_DB = getFirestore(FIREBASE_APP);
 
+console.log("🚀 Firebase connected successfully");
 
-export { FIREBASE_APP, FIREBASE_AUTH, FIREBASE_DB };
-
-console.log ("Firebase connected Successfully");
+// ✅ Export instances
+export { FIREBASE_APP, FIREBASE_DB, FIREBASE_AUTH, FIREBASE_RTDB };
+export default FIREBASE_APP;

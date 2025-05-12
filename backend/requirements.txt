@@ -1,0 +1,13 @@
+pandas
+numpy
+matplotlib
+beautifulsoup4
+wordcloud
+textblob
+nltk
+emoji
+tensorflow
+keras
+scikit-learn
+fastapi
+uvicorn

@@ -1,14 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import ChatHeader from '../(chats)/chatHeader';
+import ChatList from '../(chats)/chatList';
+
 
 const Chat = () => {
   return (
-    <View>
-      <Text>Chat</Text>
+    <View style={styles.container}>
+      <ChatHeader/>
+      <ChatList/>
     </View>
-  )
-}
+  );
+};
 
-export default Chat
+export default Chat; 
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+});

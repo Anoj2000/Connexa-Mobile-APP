@@ -40,3 +40,13 @@ yarn-error.*
 /config.js
 
 app-example
+
+#dataset.csv
+*.csv
+
+#Libraries
+/backend/venv
+
+#pycache
+/backend/__pycache__/
+
